@@ -500,6 +500,7 @@ export function generateProceduralHeritageArt(
     ctx.moveTo(bfx + 2, bfy - 10);
     ctx.quadraticCurveTo(bfx + 8, bfy - 18, bfx + 12, bfy - 16);
     ctx.stroke();
+
   } else {
     // Afrofuturism / Default
     title = 'Afrofuturist Astral Crown';
@@ -548,4 +549,34 @@ export function generateProceduralHeritageArt(
     canvas,
     dataUrl,
   };
+}
+
+/**
+ * Intelligent Heritage Vector Art synthesizer based on any user prompt.
+ * Always works 100% offline with zero network latency and zero API keys.
+ */
+export function generateArtFromPrompt(
+  prompt: string,
+  width: number = 800,
+  height: number = 1000
+): GeneratedArtworkMeta {
+  const lower = prompt.toLowerCase();
+
+  let selectedTheme: CulturalTheme = 'afro-crown';
+
+  if (lower.includes('jazz') || lower.includes('sax') || lower.includes('music') || lower.includes('guitar') || lower.includes('sing') || lower.includes('harlem')) {
+    selectedTheme = 'harlem-jazz';
+  } else if (lower.includes('space') || lower.includes('future') || lower.includes('afrofutur') || lower.includes('star') || lower.includes('pyramid') || lower.includes('cosmic')) {
+    selectedTheme = 'afrofuturism';
+  } else if (lower.includes('book') || lower.includes('read') || lower.includes('school') || lower.includes('study') || lower.includes('college') || lower.includes('hbcu') || lower.includes('king') || lower.includes('scholar')) {
+    selectedTheme = 'hbcu-pride';
+  } else if (lower.includes('pattern') || lower.includes('kente') || lower.includes('geometric') || lower.includes('sankofa') || lower.includes('heart') || lower.includes('tribal')) {
+    selectedTheme = 'sankofa-geometry';
+  } else if (lower.includes('baby') || lower.includes('child') || lower.includes('kid') || lower.includes('toddler') || lower.includes('play') || lower.includes('bubble') || lower.includes('grass') || lower.includes('truck') || lower.includes('toy')) {
+    selectedTheme = 'toddler-bubbles-grass';
+  } else {
+    selectedTheme = 'afro-crown';
+  }
+
+  return generateProceduralHeritageArt(selectedTheme, width, height);
 }

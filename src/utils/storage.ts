@@ -65,14 +65,22 @@ export function deleteSavedArtwork(id: string): void {
 }
 
 export function getStoredGeminiKey(): string {
-  return localStorage.getItem(GEMINI_API_KEY_STORAGE) || '';
+  return (
+    localStorage.getItem(GEMINI_API_KEY_STORAGE) ||
+    localStorage.getItem('gemini_api_key') ||
+    localStorage.getItem('melanin_gemini_api_key') ||
+    ''
+  );
 }
 
 export function setStoredGeminiKey(key: string): void {
   if (key) {
-    localStorage.setItem(GEMINI_API_KEY_STORAGE, key.trim());
+    const trimmed = key.trim();
+    localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed);
+    localStorage.setItem('gemini_api_key', trimmed);
   } else {
     localStorage.removeItem(GEMINI_API_KEY_STORAGE);
+    localStorage.removeItem('gemini_api_key');
   }
 }
 

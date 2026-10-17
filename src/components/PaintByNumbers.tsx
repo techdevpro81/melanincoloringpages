@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Artwork, ArtworkRegion } from '../types';
 import { CULTURAL_ARTWORKS } from '../data/artworks';
 import { ColorPaletteComponent } from './ColorPalette';
@@ -31,6 +31,15 @@ export const PaintByNumbers: React.FC<PaintByNumbersProps> = ({
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork>(() => {
     return CULTURAL_ARTWORKS.find(a => a.id === initialArtworkId) || CULTURAL_ARTWORKS[0];
   });
+
+  useEffect(() => {
+    if (initialArtworkId) {
+      const art = CULTURAL_ARTWORKS.find(a => a.id === initialArtworkId);
+      if (art) {
+        setSelectedArtwork(art);
+      }
+    }
+  }, [initialArtworkId]);
 
   // Map of region id -> current filled color
   const [filledRegions, setFilledRegions] = useState<{ [regionId: string]: string }>({});

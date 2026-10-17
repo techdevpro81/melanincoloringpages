@@ -28,6 +28,15 @@ export const ColoringStudio: React.FC<ColoringStudioProps> = ({
     return CULTURAL_ARTWORKS.find(a => a.id === initialArtworkId) || CULTURAL_ARTWORKS[0];
   });
 
+  useEffect(() => {
+    if (initialArtworkId) {
+      const art = CULTURAL_ARTWORKS.find(a => a.id === initialArtworkId);
+      if (art) {
+        setSelectedArtwork(art);
+      }
+    }
+  }, [initialArtworkId]);
+
   const [currentTool, setCurrentTool] = useState<ToolType>('bucket');
   const [currentColor, setCurrentColor] = useState<string>('#6d3b24');
   const [brushSize, setBrushSize] = useState<number>(14);

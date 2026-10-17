@@ -1,8 +1,4 @@
-import { GoogleGenAI, Modality } from "@google/genai";
-
-// Verify this against the image model your project already uses.
-// Image-capable model names change over time; it must be one that can return images.
-const IMAGE_MODEL = "gemini-2.5-flash-image";
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Wraps the user's request in strict coloring-page rules.
@@ -52,61 +48,35 @@ export async function generateRawImage(
   prompt: string
 ): Promise<string> {
   const cleanKey = apiKey.trim();
+  if (!cleanKey) {
+    throw new Error('Please enter a Google Gemini API key, or switch to Free Instant AI.');
+  }
+
+  // Pre-validate key format with clear guidance:
+  if (cleanKey.startsWith('sk-')) {
+    throw new Error('This looks like an OpenAI key (starts with sk-). Please switch provider to OpenAI or Free Instant AI.');
+  }
+  if (cleanKey.startsWith('hf_')) {
+    throw new Error('This looks like a Hugging Face token (starts with hf_). Please switch provider to Hugging Face or Free Instant AI.');
+  }
+  if (cleanKey.length < 15) {
+    throw new Error('Please enter a valid Google Gemini API key.');
+  }
+
   const ai = new GoogleGenAI({ apiKey: cleanKey });
+  let lastErrorMsg = '';
 
-  // 1. Try native Gemini image generation models (if enabled on user's key)
-  const candidateModels = [
-    IMAGE_MODEL,
-    "gemini-3-pro-image-preview",
-  ];
-
-  for (const model of candidateModels) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: { responseModalities: [Modality.TEXT, Modality.IMAGE] },
-      });
-
-      const parts = response.candidates?.[0]?.content?.parts ?? [];
-      for (const part of parts) {
-        if (part.inlineData?.data) {
-          const mime = part.inlineData.mimeType || "image/png";
-          return `data:${mime};base64,${part.inlineData.data}`;
-        }
-      }
-    } catch (err: any) {
-      console.warn(`Native image model ${model} unavailable on key:`, err?.message || err);
-    }
-  }
-
-  // 2. Try Imagen 3 / 4 diffusion (if pay-as-you-go billing is active on key)
-  const imagenModels = ["imagen-3.0-generate-002", "imagen-4.0-generate-001"];
-  for (const imgMod of imagenModels) {
-    try {
-      const imagenRes = await ai.models.generateImages({
-        model: imgMod,
-        prompt,
-        config: { numberOfImages: 1, outputMimeType: "image/png" },
-      });
-      const b64 = imagenRes.generatedImages?.[0]?.image?.imageBytes;
-      if (b64) {
-        return `data:image/png;base64,${b64}`;
-      }
-    } catch (imgErr: any) {
-      console.warn(`Imagen model ${imgMod} unavailable on key:`, imgErr?.message || imgErr);
-    }
-  }
-
-  // 3. Universal Fallback: Gemini Monoline Inker (Available on 100% of Google AI Studio keys)
+  // Google Gemini Monoline Vector Inker (Fast & 100% available on Google AI Studio keys)
   const standardFlashModels = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.5-pro",
+    "gemini-3-flash-preview",
+    "gemini-flash-latest",
+    "gemini-2.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-flash-lite-latest",
   ];
 
-  const vectorSystemInstruction = `You are a master vector graphic artist and illustrator specializing in authentic Black American coloring book art.
-Your mission is to generate clean, professional, publication-quality SVG code for a coloring book illustration based on this prompt:
+  const vectorSystemInstruction = `You are a master vector graphic artist specializing in high-contrast black and white coloring book art.
+Your mission is to generate clean, professional, publication-quality SVG code for a coloring book illustration based strictly on this subject:
 "${prompt}"
 
 STRICT COLORING BOOK DESIGN REQUIREMENTS:
@@ -116,18 +86,15 @@ STRICT COLORING BOOK DESIGN REQUIREMENTS:
 4. Line weights & Inking Style:
    - Monoline storybook inking style.
    - Main silhouette & outer framing border: stroke-width="2.5"
-   - Inner contours, jawline, clothing collar: stroke-width="1.8"
-   - Delicate details (braid chevron plait lines, eyelashes, baby hair S-curves, bead grooves): stroke-width="1.2"
+   - Inner contours & main details: stroke-width="1.8"
+   - Fine texture lines & accent strokes: stroke-width="1.2"
    - Always include stroke-linecap="round" and stroke-linejoin="round"
 5. Fillable regions & Strictly Hollow Interiors:
-   - Ensure all shapes (face, hair braid segments, beads, clothing, eyes) are enclosed elements with fill="#ffffff" and stroke="#000000".
-   - The ONLY solid black element permitted is the tiny pupil of the eye (<circle fill="#000000" ... />) with a white catchlight circle inside it.
-   - NEVER fill hair with solid black.
-6. Cultural hair anatomy & precision:
-   - For cornrows & braids: render clean white scalp parting tracks, and draw each braid with repeating hollow chevron/herringbone segments (<path fill="#ffffff" stroke="#000000" .../>). Add cylindrical beads and stacked tip beads with fill="#ffffff".
-   - For hairline: draw 4 to 5 delicate wavy S-curve baby hair strokes ("edges") laid along the forehead.
-   - For facial features: large expressive storybook eyes with white catchlight reflections, cute button nose, full lips outlined with a distinct cupids bow (hollow white interior).
-7. Output format: Return ONLY the raw SVG code starting with <svg and ending with </svg>. Do not wrap in markdown code blocks.`;
+   - Draw the exact scene and subject requested by the user: "${prompt}".
+   - Ensure all main shapes are enclosed elements with fill="#ffffff" and stroke="#000000" so they can be filled with color.
+   - Strictly zero solid black filled areas (except tiny eye pupils if people or animals are depicted).
+   - If Black people are depicted, illustrate them with dignity, natural hair textures (afros, coils, locs, braids, fades) as fitting the subject, with hollow white interiors.
+6. Output format: Return ONLY the raw SVG code starting with <svg and ending with </svg>. Do not wrap in markdown code blocks.`;
 
   for (const mod of standardFlashModels) {
     try {
@@ -157,12 +124,19 @@ STRICT COLORING BOOK DESIGN REQUIREMENTS:
         return svgToDataUrl(svg);
       }
     } catch (flashErr: any) {
-      console.warn(`Flash model ${mod} attempt failed:`, flashErr?.message || flashErr);
+      lastErrorMsg = flashErr?.message || String(flashErr);
+      console.warn(`Flash model ${mod} attempt failed:`, lastErrorMsg);
     }
   }
 
+  if (lastErrorMsg.includes('API_KEY_INVALID') || lastErrorMsg.includes('API key not valid')) {
+    throw new Error(
+      `Invalid Google Gemini API key: Google rejected this key. Please check your key in Google AI Studio (https://aistudio.google.com/app/apikey) or switch to Free Instant AI.`
+    );
+  }
+
   throw new Error(
-    "Could not generate line art with this Google Gemini API key. Please check your key in Google AI Studio, or switch to Free Instant AI."
+    lastErrorMsg || "Could not generate line art with this Google Gemini API key. Please check your key in Google AI Studio, or switch to Free Instant AI."
   );
 }
 
@@ -217,6 +191,9 @@ export async function generateColoringPage(
 ): Promise<string> {
   const prompt = buildColoringPrompt(userSubject, presetTheme);
   const raw = await generateRawImage(apiKey, prompt);
+  if (raw.startsWith('data:image/svg+xml')) {
+    return raw;
+  }
   return toPureLineArt(raw);
 }
 

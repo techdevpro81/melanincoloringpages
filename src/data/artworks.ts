@@ -2,6 +2,36 @@ import type { Artwork } from '../types';
 
 export const CULTURAL_ARTWORKS: Artwork[] = [
   {
+    id: 'teenager-dreadlocks-guitar',
+    title: 'Teenager with Dreadlocks Playing Guitar',
+    category: 'Crown & Joy',
+    difficulty: 'Detailed',
+    description: 'Publication-quality storybook coloring illustration of a cool smiling Black male teenager with neat cylindrical dreadlocks playing an acoustic guitar.',
+    culturalStory: 'Music has always been the heartbeat of Black culture, storytelling, and soul. Depicting a creative young Black musician with neat dreadlocks and acoustic guitar, this artwork honors the rich heritage of Black musicianship, from acoustic blues to modern soul.',
+    width: 768,
+    height: 1024,
+    svgPath: '',
+    imageSrc: '/examples/teenager-dreadlocks-guitar.jpg',
+    regions: [
+      { id: 'tdg-reg-1', number: 1, name: 'Teenager & Guitar Artwork', path: 'M 0 0 L 768 0 L 768 1024 L 0 1024 Z', targetColor: '#d97706', defaultColor: '#ffffff' }
+    ]
+  },
+  {
+    id: 'baby-boy-truck',
+    title: 'Baby Boy Playing with Toy Truck',
+    category: 'Crown & Joy',
+    difficulty: 'Easy',
+    description: 'Charming storybook coloring page of a smiling chubby-cheeked Black baby boy in overalls playing with his favorite toy dump truck and building blocks.',
+    culturalStory: 'Celebrating the innocent joy and wonder of Black boyhood. Filled with playful curiosity, rolled-up denim overalls, and natural soft curls, this illustration honors the beauty of imagination and childhood joy.',
+    width: 768,
+    height: 1024,
+    svgPath: '',
+    imageSrc: '/examples/baby-boy-truck.jpg',
+    regions: [
+      { id: 'bbt-reg-1', number: 1, name: 'Baby Boy & Toy Truck', path: 'M 0 0 L 768 0 L 768 1024 L 0 1024 Z', targetColor: '#3b82f6', defaultColor: '#ffffff' }
+    ]
+  },
+  {
     id: 'braids-beads-girl',
     title: 'Braids, Beads & Baby Hair',
     category: 'Crown & Joy',

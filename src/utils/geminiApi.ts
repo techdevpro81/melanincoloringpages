@@ -31,47 +31,46 @@ export function buildMasterColoringPrompt(prompt: string): string {
   const clean = prompt.trim();
   const lower = clean.toLowerCase();
 
-  let hairRules = '';
+  let hairHint = '';
   if (lower.includes('braid') || lower.includes('cornrow')) {
-    hairRules = 'neat radial parted cornrows with white scalp spaces, detailed hollow herringbone chevron braid segments, hollow cylindrical hair beads with etched grooves, stacked beads at braid ends, delicate wavy S-curl baby hair edges smoothly laid on forehead and temples, hollow white interiors inside every single braid strand, strictly zero solid black hair';
-  } else if (lower.includes('curl') || lower.includes('afro')) {
-    hairRules = 'voluminous natural 3C/4A spiral curls drawn as hollow open outline loops, delicate laid baby hair edges, clean closed contours with white centers for coloring, strictly no solid black hair blobs';
+    hairHint = ', outlined hollow chevron braids with cylindrical beads, no solid black hair fills';
   } else if (lower.includes('loc') || lower.includes('dread')) {
-    hairRules = 'neat cylindrical rope locs with hollow gold hair cuffs and hollow segments, clean scalp parts, strictly hollow outlines with white interiors, no solid black fills';
-  } else if (lower.includes('fade') || lower.includes('boy') || lower.includes('man') || lower.includes('king')) {
-    hairRules = 'sharp geometric barber lineup edges, textured hollow curl contours, clean closed lines with white interiors';
-  } else {
-    hairRules = 'authentic natural Black hair textures drawn as delicate hollow white outline loops and braids, strictly no solid black hair fills';
+    hairHint = ', outlined cylindrical dreadlocks with hollow white interiors, no solid black fills';
+  } else if (lower.includes('curl') || lower.includes('afro')) {
+    hairHint = ', defined hollow afro spiral curls, closed line contours';
+  } else if (lower.includes('fade') || lower.includes('lineup') || lower.includes('line up')) {
+    hairHint = ', crisp barber lineup edges';
   }
 
-  // Pre-pending the medium constraint forces the diffusion model to anchor into 2D line art first
-  return `Clean black and white coloring book page line art, delicate uniform monoline inking on pure white paper, storybook coloring illustration of ${clean}, featuring ${hairRules}, expressive storybook eyes with white catchlight highlights, delicate button nose, full outlined lips with cupids bow, hollow white skin, strictly zero solid black hair fills, strictly zero black filled areas, strictly zero shading, strictly zero grayscale, strictly zero gradients, strictly zero airbrushing, clean closed contours for digital bucket fills, neat single-line rectangular border, 100% pure white paper background`;
+  return `Clean black and white coloring book page line art, coloring sheet of ${clean}${hairHint}, crisp thin black outlines, pure white paper background, large hollow white spaces to color in, strictly zero shading, strictly zero grayscale, strictly zero color, closed line contours`;
 }
 
 /**
- * Free Cloud AI Coloring Page Generator (Powered by FLUX via Pollinations)
+ * Free Cloud AI Coloring Page Generator (Turbo Inker with Instant Resilient Fallback)
  * Generates genuine high-resolution coloring pages with ZERO API key required.
  */
 export async function generateFreeColoringImage(
   prompt: string,
   aspectRatio: '1:1' | '3:4' | '4:3' = '3:4'
 ): Promise<string> {
-  const width = aspectRatio === '1:1' ? 800 : aspectRatio === '4:3' ? 1024 : 768;
-  const height = aspectRatio === '1:1' ? 800 : aspectRatio === '4:3' ? 768 : 1024;
+  const width = aspectRatio === '1:1' ? 768 : aspectRatio === '4:3' ? 896 : 640;
+  const height = aspectRatio === '1:1' ? 768 : aspectRatio === '4:3' ? 640 : 896;
   
   const enhancedPrompt = buildMasterColoringPrompt(prompt);
+  const seed = `${Math.floor(Math.random() * 1000000)}`;
   
-  // Guarantee unique random seed on every single click to prevent cached image repeats
-  const seed = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
-  
-  // 1. Try local dev proxy first (strips client Origin header to avoid Cloudflare 403 Forbidden)
-  const proxyUrl = `/api/free-ai-image?prompt=${encodeURIComponent(enhancedPrompt)}&width=${width}&height=${height}&model=flux&nologo=true&seed=${seed}&_t=${Date.now()}`;
+  // 1. Try local dev proxy (bypasses browser Cloudflare Turnstile blocks & handles rate-limiting cooldown)
+  const proxyUrl = `/api/free-ai-image?prompt=${encodeURIComponent(enhancedPrompt)}&width=${width}&height=${height}&nologo=true&seed=${seed}&_t=${Date.now()}`;
 
   try {
-    const res = await fetch(proxyUrl);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 95000);
+    const res = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
+      if (!contentType.includes('application/json') && !contentType.includes('text/')) {
         const blob = await res.blob();
         return await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -86,47 +85,42 @@ export async function generateFreeColoringImage(
           reader.readAsDataURL(blob);
         });
       }
-    } else if (res.status === 402 || res.status === 429) {
-      const errText = await res.text().catch(() => '');
-      let waitSeconds = 30;
-      const match = errText.match(/retry after (\d+)s/i);
-      if (match) waitSeconds = parseInt(match[1], 10);
-      throw new Error(`Free Cloud AI is cooling down: Public FLUX servers enforce 1 image every 45s. Please wait ${waitSeconds}s, or switch to Google Gemini (Vector Inker) for instant unlimited generations!`);
     }
   } catch (proxyErr: any) {
-    if (proxyErr.message && proxyErr.message.includes('cooling down')) {
-      throw proxyErr;
-    }
-    console.warn('Local proxy attempt error:', proxyErr);
+    console.warn('Local proxy attempt notice:', proxyErr?.message || proxyErr);
   }
 
-  // 2. Direct fallback (for production or non-proxied environments)
-  const directUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${width}&height=${height}&model=flux&nologo=true&seed=${seed}`;
+  // 2. Direct fallback
+  const directUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
 
   try {
-    const res = await fetch(directUrl);
-    if (!res.ok) {
-      if (res.status === 402 || res.status === 429) {
-        throw new Error('Free Cloud AI rate limit: Public FLUX servers allow 1 generation every 45 seconds per IP. Please wait 30 seconds or switch to Google Gemini for instant unlimited generations!');
-      }
-      throw new Error(`Free Cloud AI returned status ${res.status}: ${res.statusText}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    const res = await fetch(directUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Failed to read image data'));
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
     }
-    const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        } else {
-          reject(new Error('Failed to read image data from Free Cloud AI'));
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
   } catch (err: any) {
-    throw new Error(`Free Cloud AI: ${err.message || 'Could not connect to image server'}`);
+    console.warn('Direct image server notice:', err?.message || err);
   }
+
+  // If cloud generation fails, throw a clear message so the user is never misled with an unrelated image
+  throw new Error(
+    'Free Cloud AI server is momentarily busy or rate-limited. Please wait a few seconds and click Generate Page again, or switch to Google Gemini for instant generation!'
+  );
 }
 
 /**
@@ -281,71 +275,14 @@ export async function generateAIColoringImage(
     );
   }
 
-  // 4. Google Gemini / AI Studio Provider
-  if (provider === 'gemini') {
-    if (!cleanKey) {
-      throw new Error('Please enter your Google Gemini API key at the top of the studio.');
-    }
-
-    const ai = new GoogleGenAI({ apiKey: cleanKey });
-    const requestedModel = options.model || 'gemini-coloring-page';
-
-    // 4A. If user requested generateColoringPage / pure line art
-    if (requestedModel === 'gemini-coloring-page' || requestedModel === 'gemini-2.5-flash-image') {
-      try {
-        console.log('Generating coloring page with generateColoringPage()...');
-        const coloringPageDataUrl = await generateColoringPage(cleanKey, prompt);
-        if (coloringPageDataUrl) {
-          return coloringPageDataUrl;
-        }
-      } catch (colErr: any) {
-        console.warn('generateColoringPage failed, trying vector SVG fallback:', colErr?.message || colErr);
-        try {
-          return await generateGeminiVectorColoringSVG(cleanKey, prompt);
-        } catch {
-          throw colErr;
-        }
+    // 4. Google Gemini / AI Studio Provider
+    if (provider === 'gemini') {
+      if (!cleanKey) {
+        throw new Error('Please enter your Google Gemini API key at the top of the studio.');
       }
+      console.log('Generating coloring page with Google Gemini...');
+      return await generateColoringPage(cleanKey, prompt);
     }
-
-    // 4B. If user requested Imagen 3.0 diffusion
-    if (requestedModel.includes('imagen')) {
-      const imagenModels = ['imagen-3.0-generate-002', 'imagen-3.0-generate-001', 'imagen-4.0-generate-001'];
-      for (const imgMod of imagenModels) {
-        try {
-          console.log(`Generating image with Imagen: ${imgMod}...`);
-          const imgRes = await ai.models.generateImages({
-            model: imgMod,
-            prompt: enhancedPrompt,
-            config: {
-              numberOfImages: 1,
-              aspectRatio: options.aspectRatio === '3:4' ? '3:4' : options.aspectRatio === '4:3' ? '4:3' : '1:1',
-              outputMimeType: 'image/png',
-            }
-          });
-
-          const b64 = imgRes.generatedImages?.[0]?.image?.imageBytes;
-          if (b64) {
-            return `data:image/png;base64,${b64}`;
-          }
-        } catch (imagenErr: any) {
-          console.warn(`Imagen model ${imgMod} failed:`, imagenErr?.message || imagenErr);
-        }
-      }
-      console.log('Imagen diffusion unavailable on this key. Falling back to Gemini Vector Inker...');
-    }
-
-    // 4B. Gemini Vector (SVG) Coloring Book Generator (works on 100% of Google AI Studio keys)
-    try {
-      console.log('Generating crisp vector SVG coloring sheet with Gemini Vector Inker...');
-      const svgResult = await generateGeminiVectorColoringSVG(cleanKey, prompt);
-      if (svgResult) {
-        return svgResult;
-      }
-    } catch (svgErr: any) {
-      throw new Error(`Google Gemini error: ${svgErr?.message || svgErr}`);
-    }
-  }
 
   throw new Error(`Unknown AI Provider: ${provider}`);
 }
@@ -358,25 +295,24 @@ export async function generateAIColoringImage(
 export async function generateGeminiVectorColoringSVG(
   apiKey: string,
   prompt: string,
-  preferredModel: string = 'gemini-2.5-flash'
+  preferredModel: string = 'gemini-3-flash-preview'
 ): Promise<string> {
   const cleanKey = apiKey.trim();
   const ai = new GoogleGenAI({ apiKey: cleanKey });
 
-  // List of candidate models in order of stability and widespread availability
+  // List of active models in order of stability, speed, and widespread availability
   const candidateModels = [
     preferredModel,
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-3.8-flash',
+    'gemini-3-flash-preview',
+    'gemini-flash-latest',
     'gemini-2.5-flash-lite',
-    'gemini-2.5-pro'
+    'gemini-3.8-flash',
+    'gemini-flash-lite-latest',
   ];
   const uniqueModels = Array.from(new Set(candidateModels));
 
-  const systemInstruction = `You are a master vector graphic artist and illustrator specializing in authentic Black American coloring book art.
-Your mission is to generate clean, professional, publication-quality SVG code for a coloring book illustration based on this prompt:
+  const systemInstruction = `You are a master vector graphic artist and illustrator specializing in high-contrast coloring book art.
+Your mission is to generate clean, professional, publication-quality SVG code for a coloring book illustration based strictly on this prompt:
 "${prompt}"
 
 CRITICAL COLORING BOOK DESIGN REQUIREMENTS:
@@ -384,21 +320,19 @@ CRITICAL COLORING BOOK DESIGN REQUIREMENTS:
 2. Start with an opaque pure white background rectangle: <rect width="800" height="1000" fill="#ffffff" />
 3. Color palette: STRICTLY BLACK AND WHITE. All strokes must be "#000000". All fills must be "#ffffff" (white) or "none". NEVER use colors, gradients, grayscale shading, or half-tones.
 4. Line weights & Inking Style:
-   - Monoline storybook inking style. NEVER use thick chunky strokes.
+   - Monoline storybook inking style.
    - Main silhouette & outer framing border: stroke-width="2.5"
-   - Inner contours, jawline, clothing collar: stroke-width="1.8"
-   - Delicate details (braid chevron plait lines, eyelashes, baby hair S-curves, bead grooves): stroke-width="1.2"
+   - Inner contours and focal shapes: stroke-width="1.8"
+   - Delicate details and fine line accents: stroke-width="1.2"
    - Always include stroke-linecap="round" and stroke-linejoin="round"
 5. Fillable regions & Strictly Hollow Interiors:
-   - Ensure all shapes (face, hair braid segments, beads, clothing, eyes) are enclosed elements with fill="#ffffff" and stroke="#000000".
-   - The ONLY solid black element permitted is the tiny pupil of the eye (<circle fill="#000000" ... />) with a white catchlight circle inside it.
-   - NEVER fill hair with solid black.
-6. Cultural hair anatomy & precision:
-   - For cornrows & braids: render clean white scalp parting tracks, and draw each braid with repeating hollow chevron/herringbone segments (<path fill="#ffffff" stroke="#000000" .../>). Add cylindrical beads and stacked tip beads with fill="#ffffff".
-   - For hairline: draw 4 to 5 delicate wavy S-curve baby hair strokes ("edges") laid along the forehead.
-   - For facial features: large expressive storybook eyes with white catchlight reflections, cute button nose, full lips outlined with a distinct cupids bow (hollow white interior).
-7. Structure the SVG cleanly with semantic groups (<g id="border">, <g id="hair-braids">, <g id="beads">, <g id="face">, <g id="eyes">, <g id="lips">, <g id="clothing">).
-8. Output format: Return ONLY the raw SVG code starting with <svg and ending with </svg>. Do not wrap in markdown code blocks.`;
+   - Accurately draw the exact subject and elements requested in the prompt: "${prompt}".
+   - Ensure all shapes are enclosed elements with fill="#ffffff" and stroke="#000000".
+   - The ONLY solid black element permitted is the tiny pupil of the eye if a person or animal is depicted (<circle fill="#000000" ... />) with a white catchlight circle inside it.
+   - NEVER fill hair, clothing, or backgrounds with solid black.
+6. Cultural sensitivity (if people are depicted):
+   - Depict natural hairstyles and textures (locs, dreadlocks, braids, afros, fades) with hollow white interiors and clean contour strokes.
+7. Output format: Return ONLY the raw SVG code starting with <svg and ending with </svg>. Do not wrap in markdown code blocks.`;
 
   let lastErr = '';
 
@@ -523,15 +457,20 @@ export async function testGeminiApiKey(apiKey: string): Promise<KeyValidationRes
   }
 
   try {
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`, {
+      headers: {
+        'x-goog-api-key': cleanKey,
+      }
+    });
     if (!listRes.ok) {
       const err = await listRes.json().catch(() => null);
+      const apiMsg = err?.error?.message || '';
       return {
         valid: false,
         provider: 'gemini',
         models: [],
         hasImageGen: false,
-        message: err?.error?.message || `Google API Error (${listRes.status})`
+        message: apiMsg || `Google API Error (${listRes.status})`
       };
     }
 

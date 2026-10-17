@@ -15,7 +15,7 @@ import {
   CircleDot,
   AlertCircle
 } from 'lucide-react';
-import { convertToColoringLineArt, extractContourDots, clarifyAIColoringArt } from '../utils/imageProcessor';
+import { convertToColoringLineArt, extractContourDots } from '../utils/imageProcessor';
 import { getStoredGeminiKey, setStoredGeminiKey } from '../utils/storage';
 import { generateColoringPage } from '../coloringPage';
 import { 
@@ -23,7 +23,7 @@ import {
   enhanceColoringPromptWithGemini, 
   testGeminiApiKey 
 } from '../utils/geminiApi';
-import { generateProceduralHeritageArt, type CulturalTheme } from '../utils/proceduralArtGenerator';
+import { generateArtFromPrompt } from '../utils/proceduralArtGenerator';
 import type { Artwork, ConnectDotsPuzzle } from '../types';
 import confetti from 'canvas-confetti';
 
@@ -53,6 +53,22 @@ interface CulturalPreset {
 }
 
 const CULTURAL_PRESETS: CulturalPreset[] = [
+  {
+    id: 'teenager-dreadlocks-guitar',
+    name: 'Teenager & Guitar',
+    badge: 'Soul & Melanin',
+    imagePreview: '/examples/teenager-dreadlocks-guitar.jpg',
+    themePhrase: 'Black male teenager with dreadlocks playing acoustic guitar',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a handsome smiling Black male teenager with detailed cylindrical dreadlocks locs with hollow beads, wearing a hoodie and denim jacket, sitting on a wooden stool and happily playing an acoustic guitar, delicate uniform monoline inking, crisp thin black outlines, large open hollow white spaces everywhere for coloring in, hollow white hair locs with distinct outlines, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, strictly zero gradients, clean closed contours for digital bucket fill, pure white background'
+  },
+  {
+    id: 'baby-boy-truck',
+    name: 'Baby Boy & Toy Truck',
+    badge: 'Playtime & Joy',
+    imagePreview: '/examples/baby-boy-truck.jpg',
+    themePhrase: 'Baby boy playing with toy dump truck and alphabet blocks',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of an adorable smiling chubby-cheeked young Black baby boy with cute natural curly afro hair, wearing denim overalls over a t-shirt, sitting on the floor playing with a chunky toy dump truck, big expressive cartoon eyes with white catchlight highlights, cute button nose, full lips, thin crisp black outlines, large open hollow white spaces for coloring, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, clean closed contours, publication-grade coloring book page'
+  },
   {
     id: 'braids-beads',
     name: 'Braids, Beads & Baby Hair',
@@ -96,13 +112,14 @@ const CULTURAL_PRESETS: CulturalPreset[] = [
 ];
 
 const QUICK_STYLE_CHIPS = [
+  { label: '+ Dreadlocks & Guitar', text: ', detailed hollow dreadlocks with beads, playing acoustic guitar' },
+  { label: '+ Toy Truck & Blocks', text: ', playing happily with chunky toy dump truck and alphabet blocks A B C' },
   { label: '+ Laid Baby Hair', text: ', wavy laid S-curl baby hair edges on forehead and temples' },
   { label: '+ Stacked Hair Beads', text: ', cylindrical wooden and glass hair beads stacked at braid ends' },
   { label: '+ Herringbone Braids', text: ', intricate hollow chevron herringbone braid segments' },
   { label: '+ Defined 4A Curls', text: ', voluminous defined hollow 4A spiral curl loops' },
   { label: '+ Baroque Tiara', text: ', ornate baroque gemstone tiara crown with pearls' },
   { label: '+ Gold Hair Cuffs', text: ', etched hollow gold cuffs on locs and braids' },
-  { label: '+ Daisy Flower Crown', text: ', ring of delicate daisy wildflowers in hair' },
   { label: '+ Pure White Paper', text: ', crisp thin black outlines, pure white paper background, strictly no shading' },
 ];
 
@@ -124,8 +141,8 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
   const [keyNotice, setKeyNotice] = useState<string | null>(null);
 
   // Prompt & Style State
-  const [selectedPresetId, setSelectedPresetId] = useState<string>(CULTURAL_PRESETS[0].id);
-  const [prompt, setPrompt] = useState<string>(CULTURAL_PRESETS[0].prompt);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState<string>('');
   const [aspectRatio, setAspectRatio] = useState<'3:4' | '1:1' | '4:3'>('3:4');
   const [isPolishing, setIsPolishing] = useState<boolean>(false);
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
@@ -136,9 +153,9 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
   const [statusText, setStatusText] = useState<string>('');
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
-  // Canvas State & Tuning
-  const [activeImageDataUrl, setActiveImageDataUrl] = useState<string>(CULTURAL_PRESETS[0].imagePreview);
-  const [activeTitle, setActiveTitle] = useState<string>(CULTURAL_PRESETS[0].name);
+  // Canvas State & Tuning (Starts clean with NO canned image loaded)
+  const [activeImageDataUrl, setActiveImageDataUrl] = useState<string>('');
+  const [activeTitle, setActiveTitle] = useState<string>('Ready to Generate');
   const [lineThicken, setLineThicken] = useState<boolean>(false);
   const [lineThreshold, setLineThreshold] = useState<number>(145);
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
@@ -204,15 +221,21 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
         invert: false,
       });
       cCtx.drawImage(processed, 0, 0);
+    } else if (activeImageDataUrl.startsWith('data:image/svg+xml')) {
+      // Preserves pure vector monoline SVG perfectly
+      cCtx.drawImage(tempCanvas, 0, 0);
     } else {
-      // Clarify AI generation into pure B&W monoline ink on white paper
-      const clarified = clarifyAIColoringArt(tempCanvas, {
-        lineThreshold,
-        thickenLines: lineThicken,
+      // For AI raster generations: extract clean coloring outlines with hollow white interiors
+      const processed = convertToColoringLineArt(tempCanvas, {
+        threshold: lineThreshold || 110,
+        edgeIntensity: 2.5,
+        lineThickness: lineThicken ? 2 : 1,
+        detailLevel: 2,
+        invert: false,
       });
-      cCtx.drawImage(clarified, 0, 0);
+      cCtx.drawImage(processed, 0, 0);
     }
-  }, [activeTab, photoThreshold, photoThickness, lineThreshold, lineThicken]);
+  }, [activeTab, activeImageDataUrl, photoThreshold, photoThickness, lineThreshold, lineThicken]);
 
   useEffect(() => {
     if (!activeImageDataUrl) return;
@@ -224,12 +247,14 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
     img.src = activeImageDataUrl;
   }, [activeImageDataUrl, renderCanvas]);
 
-  // Select Preset Card
+  // Select Preset Card (Populates the prompt template for the user)
   const handleSelectPreset = (preset: CulturalPreset) => {
     setSelectedPresetId(preset.id);
     setPrompt(preset.prompt);
     setActiveTitle(preset.name);
-    setActiveImageDataUrl(preset.imagePreview);
+    // Note: Do NOT set activeImageDataUrl here!
+    // The user clicked this preset card to populate the prompt template.
+    // The canvas must only show an image when the AI generator generates it!
   };
 
   // Append Quick Style Chip to Prompt
@@ -255,12 +280,18 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
     }
   };
 
-  // Main Generation Handler
+  // Main Generation Handler (Executes the user's prompt directly)
   const handleGenerate = async () => {
+    const cleanPrompt = prompt.trim();
+    if (!cleanPrompt) {
+      setErrorNotice('Please type a description in the prompt box first!');
+      return;
+    }
+
     setIsGenerating(true);
     setErrorNotice(null);
     setGenerationStep(1);
-    setStatusText('1/3: Anchoring authentic Black heritage contour rules...');
+    setStatusText('1/3: Anchoring coloring book contour rules...');
 
     try {
       let finalDataUrl = '';
@@ -272,30 +303,23 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
         }
 
         setGenerationStep(2);
-        setStatusText('2/3: Calling generateColoringPage() with Google Gemini...');
-        const currentTheme = CULTURAL_PRESETS.find(p => p.id === selectedPresetId)?.themePhrase || 'Black Heritage Art';
-        
-        finalDataUrl = await generateColoringPage(cleanKey, prompt, currentTheme);
+        setStatusText('2/3: Generating coloring page with Google Gemini...');
+        // Pass prompt directly to Google Gemini
+        finalDataUrl = await generateColoringPage(cleanKey, cleanPrompt);
 
       } else if (engine === 'free-ai') {
         setGenerationStep(2);
-        setStatusText('2/3: Generating high-resolution monoline art with Free Cloud FLUX...');
+        setStatusText('2/3: Generating high-resolution monoline art with Free Instant AI...');
         
-        finalDataUrl = await generateFreeColoringImage(prompt, aspectRatio);
+        finalDataUrl = await generateFreeColoringImage(cleanPrompt, aspectRatio);
 
       } else {
         // Procedural Heritage Vector Engine (Offline)
         setGenerationStep(2);
         setStatusText('2/3: Tracing mathematical cultural vector contours...');
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 300));
         
-        let theme: CulturalTheme = 'afro-crown';
-        const pLower = prompt.toLowerCase();
-        if (pLower.includes('bubble') || pLower.includes('toddler')) theme = 'toddler-bubbles-grass' as CulturalTheme;
-        else if (pLower.includes('banner') || pLower.includes('history')) theme = 'sankofa-geometry';
-        else if (pLower.includes('jazz')) theme = 'harlem-jazz';
-
-        const result = generateProceduralHeritageArt(theme, 800, 1000);
+        const result = generateArtFromPrompt(cleanPrompt, 800, 1000);
         finalDataUrl = result.dataUrl;
       }
 
@@ -304,15 +328,15 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
       await new Promise(r => setTimeout(r, 200));
 
       setActiveImageDataUrl(finalDataUrl);
-      const generatedTitle = `Coloring Page: ${prompt.slice(0, 24)}...`;
+      const generatedTitle = `Coloring Page: ${cleanPrompt.slice(0, 24)}...`;
       setActiveTitle(generatedTitle);
 
       // Add to history
       const newHistoryItem: GenerationHistoryItem = {
         id: `gen-${Date.now()}`,
-        title: prompt.slice(0, 26),
+        title: cleanPrompt.slice(0, 26),
         dataUrl: finalDataUrl,
-        prompt,
+        prompt: cleanPrompt,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setHistory(prev => [newHistoryItem, ...prev.slice(0, 7)]);
@@ -698,11 +722,15 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                 </div>
 
                 <textarea
+                  id="prompt-description-input"
                   rows={4}
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e) => {
+                    setPrompt(e.target.value);
+                    setSelectedPresetId(null);
+                  }}
                   className="w-full bg-stone-950 text-stone-200 border border-stone-800 rounded-xl p-3 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none resize-none leading-relaxed"
-                  placeholder="Describe the coloring page you want to create..."
+                  placeholder="Type any prompt to generate (e.g. 'black male teenager with dreadlocks playing the guitar', 'baby boy with toy truck', 'astronaut exploring a pyramid', 'puppy in the garden')..."
                 />
 
                 {/* Quick Style Chips */}
@@ -751,6 +779,8 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
               {/* 4. Main Action Button */}
               <div className="flex flex-col gap-2">
                 <button
+                  id="generate-coloring-page-btn"
+                  data-testid="generate-btn"
                   onClick={handleGenerate}
                   disabled={isGenerating}
                   className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-sm shadow-xl shadow-amber-500/20 transition cursor-pointer disabled:opacity-50"
@@ -769,9 +799,38 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                 </button>
 
                 {errorNotice && (
-                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/70 text-xs text-red-200 flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                    <span>{errorNotice}</span>
+                  <div className="p-4 rounded-xl bg-red-950/70 border border-red-800/80 text-xs text-red-200 flex flex-col gap-2.5">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium">
+                        {errorNotice}
+                      </div>
+                    </div>
+                    {engine === 'gemini' && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-red-900/60">
+                        <button
+                          onClick={() => {
+                            setEngine('free-ai');
+                            setErrorNotice(null);
+                            setTimeout(() => {
+                              handleGenerate();
+                            }, 50);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs cursor-pointer shadow transition"
+                        >
+                          ⚡ Switch to Free Instant AI & Regenerate
+                        </button>
+                        <a
+                          href="https://aistudio.google.com/app/apikey"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-amber-300 hover:underline text-xs flex items-center gap-1 font-semibold"
+                        >
+                          <span>Get Free Gemini Key</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -885,13 +944,25 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
 
             {/* The Actual Coloring Canvas Viewport */}
             <div className="w-full aspect-[3/4] max-h-[580px] rounded-xl overflow-hidden bg-white shadow-inner flex items-center justify-center p-2 relative">
-              <canvas
-                ref={canvasRef}
-                className="max-w-full max-h-full object-contain filter drop-shadow-sm select-none"
-              />
+              {activeImageDataUrl ? (
+                <canvas
+                  ref={canvasRef}
+                  className="max-w-full max-h-full object-contain filter drop-shadow-sm select-none"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-6 text-stone-500 gap-3 border-2 border-dashed border-stone-300 rounded-xl w-full h-full bg-stone-50/50">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 mb-1">
+                    <Sparkles className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-sm font-bold text-stone-800">Canvas Ready for Generation</h3>
+                  <p className="text-xs text-stone-500 max-w-xs leading-relaxed">
+                    Type any idea into the prompt box (or click an inspiration card) and click <span className="font-semibold text-amber-700">"Generate Coloring Page"</span> to generate brand-new line art!
+                  </p>
+                </div>
+              )}
 
               {isGenerating && (
-                <div className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-6 text-center animate-fadeIn">
+                <div className="absolute inset-0 bg-stone-950/85 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-6 text-center animate-fadeIn z-10">
                   <div className="relative">
                     <RefreshCw className="w-10 h-10 text-amber-400 animate-spin" />
                     <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1 -right-1" />
@@ -916,7 +987,8 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   onClick={handleSendToColoringStudio}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 text-xs font-black transition cursor-pointer shadow-md"
+                  disabled={!activeImageDataUrl}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 text-xs font-black transition cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Palette className="w-3.5 h-3.5" />
                   <span>Coloring Studio</span>
@@ -924,7 +996,8 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
 
                 <button
                   onClick={handleSendToPaintByNumbers}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-stone-950 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold transition cursor-pointer"
+                  disabled={!activeImageDataUrl}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-stone-950 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Hash className="w-3.5 h-3.5 text-amber-400" />
                   <span>Paint by Numbers</span>
@@ -932,7 +1005,8 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
 
                 <button
                   onClick={handleSendToConnectDots}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-stone-950 hover:bg-stone-800 text-stone-300 border border-stone-800 text-xs font-bold transition cursor-pointer"
+                  disabled={!activeImageDataUrl}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-stone-950 hover:bg-stone-800 text-stone-300 border border-stone-800 text-xs font-bold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <CircleDot className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Connect Dots</span>
@@ -940,7 +1014,8 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
 
                 <button
                   onClick={handlePrint}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-stone-950 hover:bg-stone-800 text-stone-300 border border-stone-800 text-xs font-bold transition cursor-pointer"
+                  disabled={!activeImageDataUrl}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-stone-950 hover:bg-stone-800 text-stone-300 border border-stone-800 text-xs font-bold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Printer className="w-3.5 h-3.5 text-sky-400" />
                   <span>Print (PDF)</span>
@@ -950,7 +1025,8 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
               <div className="flex items-center justify-between pt-1">
                 <button
                   onClick={handleDownload}
-                  className="text-[11px] text-stone-400 hover:text-amber-400 flex items-center gap-1 font-semibold transition cursor-pointer"
+                  disabled={!activeImageDataUrl}
+                  className="text-[11px] text-stone-400 hover:text-amber-400 flex items-center gap-1 font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Download className="w-3 h-3" />
                   <span>Download High-Res 300 DPI PNG</span>
