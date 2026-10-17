@@ -27,6 +27,7 @@ import {
   type AIProvider 
 } from '../utils/geminiApi';
 import { generateProceduralHeritageArt, type CulturalTheme } from '../utils/proceduralArtGenerator';
+import { generateColoringPage } from '../coloringPage';
 import type { Artwork, ConnectDotsPuzzle } from '../types';
 import confetti from 'canvas-confetti';
 
@@ -140,7 +141,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
   );
   const [hfModel, setHfModel] = useState<string>('black-forest-labs/FLUX.1-schnell');
   const [customHfModel, setCustomHfModel] = useState<string>('');
-  const [geminiModel, setGeminiModel] = useState<string>('gemini-vector-svg');
+  const [geminiModel, setGeminiModel] = useState<string>('gemini-coloring-page');
   const [aspectRatio, setAspectRatio] = useState<'1:1' | '3:4' | '4:3'>('3:4');
   const [isVerifyingKey, setIsVerifyingKey] = useState<boolean>(false);
   const [keyVerificationMsg, setKeyVerificationMsg] = useState<string | null>(null);
@@ -321,9 +322,49 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
       ? `Hugging Face (${chosenModel.split('/')[1] || 'FLUX'})`
       : effectiveProvider === 'openai'
       ? 'OpenAI DALL-E 3'
+      : chosenModel === 'gemini-coloring-page'
+      ? 'Gemini Pure Line Art (generateColoringPage)'
       : chosenModel === 'gemini-vector-svg'
       ? 'Gemini Vector Inker (Pure SVG)'
       : `Google Gemini (${chosenModel})`;
+
+    // Direct integration for generateColoringPage() when chosenModel is gemini-coloring-page
+    if (effectiveProvider === 'gemini' && (chosenModel === 'gemini-coloring-page' || chosenModel === 'gemini-2.5-flash-image')) {
+      setIsGenerating(true);
+      setErrorMessage(null);
+      setStatusMessage('Synthesizing pure line art coloring page with generateColoringPage()...');
+
+      try {
+        const activeTheme = REFERENCE_STYLES.find(s => s.id === selectedStyleId)?.badge || 'Black Heritage Art';
+        const dataUrl = await generateColoringPage(cleanKey, prompt, activeTheme);
+
+        setCurrentImageDataUrl(dataUrl);
+        setCurrentTitle(`Coloring Page: ${prompt.slice(0, 28)}...`);
+
+        const newItem: GenerationHistoryItem = {
+          id: `ai-${Date.now()}`,
+          title: prompt.slice(0, 30),
+          dataUrl,
+          prompt,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setHistoryItems(prev => [newItem, ...prev.slice(0, 7)]);
+
+        confetti({
+          particleCount: 80,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#f59e0b', '#dc2626', '#16a34a', '#38bdf8']
+        });
+      } catch (err: any) {
+        console.warn('generateColoringPage failed:', err);
+        setErrorMessage(`generateColoringPage Notice: ${err.message || 'Generation failed. If your API key has capability restrictions, try switching model to Gemini Vector Inker or Free Cloud AI.'}`);
+      } finally {
+        setIsGenerating(false);
+        setStatusMessage('');
+      }
+      return;
+    }
 
     setIsGenerating(true);
     setErrorMessage(null);
@@ -360,6 +401,54 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
     } catch (err: any) {
       console.warn('Cloud generation failed:', err);
       setErrorMessage(`Generation Notice: ${err.message || 'The AI service encountered an error'}`);
+    } finally {
+      setIsGenerating(false);
+      setStatusMessage('');
+    }
+  };
+
+  // Directly trigger generateColoringPage()
+  const handleGenerateColoringPage = async () => {
+    const cleanKey = apiKey.trim();
+    if (!cleanKey) {
+      setShowApiGuideModal(true);
+      setErrorMessage('Please enter your Google Gemini API key (starts with AIza) at the top of the studio to run generateColoringPage().');
+      return;
+    }
+    if (cleanKey.startsWith('hf_') || cleanKey.startsWith('sk-')) {
+      setErrorMessage('Key Mismatch: Please provide a Google Gemini API key (starts with AIza) to run generateColoringPage().');
+      return;
+    }
+
+    setIsGenerating(true);
+    setErrorMessage(null);
+    setStatusMessage('Generating pure line art with generateColoringPage()...');
+
+    try {
+      const activeTheme = REFERENCE_STYLES.find(s => s.id === selectedStyleId)?.badge || 'Black Heritage Art';
+      const dataUrl = await generateColoringPage(cleanKey, prompt, activeTheme);
+
+      setCurrentImageDataUrl(dataUrl);
+      setCurrentTitle(`Coloring Page: ${prompt.slice(0, 28)}...`);
+
+      const newItem: GenerationHistoryItem = {
+        id: `ai-${Date.now()}`,
+        title: prompt.slice(0, 30),
+        dataUrl,
+        prompt,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setHistoryItems(prev => [newItem, ...prev.slice(0, 7)]);
+
+      confetti({
+        particleCount: 80,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#f59e0b', '#dc2626', '#16a34a', '#38bdf8']
+      });
+    } catch (err: any) {
+      console.warn('generateColoringPage error:', err);
+      setErrorMessage(`generateColoringPage Notice: ${err.message || 'Image synthesis error'}`);
     } finally {
       setIsGenerating(false);
       setStatusMessage('');
@@ -963,6 +1052,12 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                           {[
                             { 
+                              id: 'gemini-coloring-page', 
+                              name: 'Gemini Pure Line Art', 
+                              badge: 'generateColoringPage()', 
+                              desc: 'Native image synthesis + pure B&W canvas line art filter (coloringPage.ts)' 
+                            },
+                            { 
                               id: 'gemini-vector-svg', 
                               name: 'Gemini Vector Inker', 
                               badge: '100% Free SVG', 
@@ -1159,6 +1254,17 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                       </>
                     )}
                   </button>
+
+                  {provider === 'gemini' && (
+                    <button
+                      onClick={handleGenerateColoringPage}
+                      disabled={isGenerating}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/50 text-xs font-bold transition cursor-pointer shadow-sm"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Execute generateColoringPage() (Pure Line Art)</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={handleGenerateProcedural}

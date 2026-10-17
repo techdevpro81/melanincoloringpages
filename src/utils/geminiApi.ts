@@ -1,6 +1,7 @@
 // Multi-Provider AI Image Generation Client with Modern Google GenAI Integration
 import { HfInference } from '@huggingface/inference';
 import { GoogleGenAI } from '@google/genai';
+import { generateColoringPage } from '../coloringPage';
 
 export type AIProvider = 'free-ai' | 'gemini' | 'openai' | 'huggingface';
 
@@ -287,9 +288,27 @@ export async function generateAIColoringImage(
     }
 
     const ai = new GoogleGenAI({ apiKey: cleanKey });
-    const requestedModel = options.model || 'gemini-vector-svg';
+    const requestedModel = options.model || 'gemini-coloring-page';
 
-    // 4A. If user requested Imagen 3.0 diffusion
+    // 4A. If user requested generateColoringPage / pure line art
+    if (requestedModel === 'gemini-coloring-page' || requestedModel === 'gemini-2.5-flash-image') {
+      try {
+        console.log('Generating coloring page with generateColoringPage()...');
+        const coloringPageDataUrl = await generateColoringPage(cleanKey, prompt);
+        if (coloringPageDataUrl) {
+          return coloringPageDataUrl;
+        }
+      } catch (colErr: any) {
+        console.warn('generateColoringPage failed, trying vector SVG fallback:', colErr?.message || colErr);
+        try {
+          return await generateGeminiVectorColoringSVG(cleanKey, prompt);
+        } catch {
+          throw colErr;
+        }
+      }
+    }
+
+    // 4B. If user requested Imagen 3.0 diffusion
     if (requestedModel.includes('imagen')) {
       const imagenModels = ['imagen-3.0-generate-002', 'imagen-3.0-generate-001', 'imagen-4.0-generate-001'];
       for (const imgMod of imagenModels) {
