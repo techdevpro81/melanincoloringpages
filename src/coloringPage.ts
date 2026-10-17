@@ -36,20 +36,29 @@ export function buildColoringPrompt(
   ].join("\n");
 }
 
-/** Calls Gemini and returns a data URL of the raw generated image. */
+/** Converts an SVG string into a safe, valid base64 data URL */
+function svgToDataUrl(svg: string): string {
+  try {
+    const b64 = btoa(unescape(encodeURIComponent(svg)));
+    return `data:image/svg+xml;base64,${b64}`;
+  } catch {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+}
+
+/** Calls Gemini and returns a data URL of the raw generated image or vector line art. */
 export async function generateRawImage(
   apiKey: string,
   prompt: string
 ): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey });
+  const cleanKey = apiKey.trim();
+  const ai = new GoogleGenAI({ apiKey: cleanKey });
 
-  // 1. Try native Gemini image generation models
+  // 1. Try native Gemini image generation models (if enabled on user's key)
   const candidateModels = [
     IMAGE_MODEL,
-    "gemini-3.1-flash-image-preview",
-    "gemini-2.0-flash-exp",
+    "gemini-3-pro-image-preview",
   ];
-  let lastErrorText = "";
 
   for (const model of candidateModels) {
     try {
@@ -66,31 +75,94 @@ export async function generateRawImage(
           return `data:${mime};base64,${part.inlineData.data}`;
         }
       }
-      const text = parts.map((p) => p.text).filter(Boolean).join(" ");
-      if (text) lastErrorText = text;
     } catch (err: any) {
-      console.warn(`Model ${model} attempt failed:`, err?.message || err);
-      lastErrorText = err?.message || String(err);
+      console.warn(`Native image model ${model} unavailable on key:`, err?.message || err);
     }
   }
 
-  // 2. Fallback to Imagen 3 if available on the key
-  try {
-    const imagenRes = await ai.models.generateImages({
-      model: "imagen-3.0-generate-002",
-      prompt,
-      config: { numberOfImages: 1, outputMimeType: "image/png" },
-    });
-    const b64 = imagenRes.generatedImages?.[0]?.image?.imageBytes;
-    if (b64) {
-      return `data:image/png;base64,${b64}`;
+  // 2. Try Imagen 3 / 4 diffusion (if pay-as-you-go billing is active on key)
+  const imagenModels = ["imagen-3.0-generate-002", "imagen-4.0-generate-001"];
+  for (const imgMod of imagenModels) {
+    try {
+      const imagenRes = await ai.models.generateImages({
+        model: imgMod,
+        prompt,
+        config: { numberOfImages: 1, outputMimeType: "image/png" },
+      });
+      const b64 = imagenRes.generatedImages?.[0]?.image?.imageBytes;
+      if (b64) {
+        return `data:image/png;base64,${b64}`;
+      }
+    } catch (imgErr: any) {
+      console.warn(`Imagen model ${imgMod} unavailable on key:`, imgErr?.message || imgErr);
     }
-  } catch (imgErr: any) {
-    console.warn("Imagen 3 fallback attempt failed:", imgErr?.message || imgErr);
+  }
+
+  // 3. Universal Fallback: Gemini Monoline Inker (Available on 100% of Google AI Studio keys)
+  const standardFlashModels = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.5-pro",
+  ];
+
+  const vectorSystemInstruction = `You are a master vector graphic artist and illustrator specializing in authentic Black American coloring book art.
+Your mission is to generate clean, professional, publication-quality SVG code for a coloring book illustration based on this prompt:
+"${prompt}"
+
+STRICT COLORING BOOK DESIGN REQUIREMENTS:
+1. Root element must be: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+2. Start with an opaque pure white background rectangle: <rect width="800" height="1000" fill="#ffffff" />
+3. Color palette: STRICTLY BLACK AND WHITE. All strokes must be "#000000". All fills must be "#ffffff" (white) or "none". NEVER use colors, gradients, grayscale shading, or half-tones.
+4. Line weights & Inking Style:
+   - Monoline storybook inking style.
+   - Main silhouette & outer framing border: stroke-width="2.5"
+   - Inner contours, jawline, clothing collar: stroke-width="1.8"
+   - Delicate details (braid chevron plait lines, eyelashes, baby hair S-curves, bead grooves): stroke-width="1.2"
+   - Always include stroke-linecap="round" and stroke-linejoin="round"
+5. Fillable regions & Strictly Hollow Interiors:
+   - Ensure all shapes (face, hair braid segments, beads, clothing, eyes) are enclosed elements with fill="#ffffff" and stroke="#000000".
+   - The ONLY solid black element permitted is the tiny pupil of the eye (<circle fill="#000000" ... />) with a white catchlight circle inside it.
+   - NEVER fill hair with solid black.
+6. Cultural hair anatomy & precision:
+   - For cornrows & braids: render clean white scalp parting tracks, and draw each braid with repeating hollow chevron/herringbone segments (<path fill="#ffffff" stroke="#000000" .../>). Add cylindrical beads and stacked tip beads with fill="#ffffff".
+   - For hairline: draw 4 to 5 delicate wavy S-curve baby hair strokes ("edges") laid along the forehead.
+   - For facial features: large expressive storybook eyes with white catchlight reflections, cute button nose, full lips outlined with a distinct cupids bow (hollow white interior).
+7. Output format: Return ONLY the raw SVG code starting with <svg and ending with </svg>. Do not wrap in markdown code blocks.`;
+
+  for (const mod of standardFlashModels) {
+    try {
+      console.log(`Generating coloring line art via Gemini Flash model: ${mod}...`);
+      const response = await ai.models.generateContent({
+        model: mod,
+        contents: `${vectorSystemInstruction}\n\nUSER PROMPT: ${prompt}`,
+        config: {
+          temperature: 0.35,
+          maxOutputTokens: 8192,
+        }
+      });
+
+      const fullText = response.text || '';
+      const match = fullText.match(/<svg[\s\S]*?<\/svg>/i);
+      if (match) {
+        let svg = match[0].trim();
+        if (!svg.includes('xmlns=')) {
+          svg = svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        if (!svg.includes('viewBox=')) {
+          svg = svg.replace('<svg', '<svg viewBox="0 0 800 1000"');
+        }
+        if (!svg.includes('width=')) {
+          svg = svg.replace('<svg', '<svg width="800" height="1000"');
+        }
+        return svgToDataUrl(svg);
+      }
+    } catch (flashErr: any) {
+      console.warn(`Flash model ${mod} attempt failed:`, flashErr?.message || flashErr);
+    }
   }
 
   throw new Error(
-    `No image returned from Gemini. Model response / error: ${lastErrorText || "(empty response)"}`
+    "Could not generate line art with this Google Gemini API key. Please check your key in Google AI Studio, or switch to Free Instant AI."
   );
 }
 

@@ -268,7 +268,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
       if (engine === 'gemini') {
         const cleanKey = geminiApiKey.trim();
         if (!cleanKey) {
-          throw new Error('Please enter your Google Gemini API key (starts with AIza) in the key field above, or switch to Free Instant AI!');
+          throw new Error('Please enter your Google Gemini API key in the key field above, or switch to Free Instant AI!');
         }
 
         setGenerationStep(2);
@@ -582,7 +582,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                   <div className="mt-1 p-3 rounded-xl bg-stone-950 border border-stone-800 flex flex-col gap-2 animate-fadeIn">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-stone-300 uppercase tracking-wider">
-                        Google AI Studio Key (AIza...)
+                        Google Gemini API Key
                       </span>
                       <a 
                         href="https://aistudio.google.com/app/apikey" 
@@ -601,7 +601,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                           type={showKey ? 'text' : 'password'}
                           value={geminiApiKey}
                           onChange={(e) => handleKeyChange(e.target.value)}
-                          placeholder="AIzaSy..."
+                          placeholder="Enter your Gemini API key..."
                           className="w-full bg-stone-900 text-stone-200 text-xs rounded-lg px-3 py-2 border border-stone-700 focus:border-amber-500 focus:outline-none font-mono"
                         />
                         <button

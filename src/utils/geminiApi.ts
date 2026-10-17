@@ -284,7 +284,7 @@ export async function generateAIColoringImage(
   // 4. Google Gemini / AI Studio Provider
   if (provider === 'gemini') {
     if (!cleanKey) {
-      throw new Error('Please enter your Google AI Studio API key (starts with AIza) at the top of the studio.');
+      throw new Error('Please enter your Google Gemini API key at the top of the studio.');
     }
 
     const ai = new GoogleGenAI({ apiKey: cleanKey });
