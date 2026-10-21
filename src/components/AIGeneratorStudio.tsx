@@ -13,17 +13,19 @@ import {
   EyeOff, 
   Hash, 
   CircleDot,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  Search,
+  Check
 } from 'lucide-react';
 import { convertToColoringLineArt, extractContourDots } from '../utils/imageProcessor';
 import { getStoredGeminiKey, setStoredGeminiKey } from '../utils/storage';
 import { generateColoringPage } from '../coloringPage';
 import { 
-  generateFreeColoringImage, 
   enhanceColoringPromptWithGemini, 
   testGeminiApiKey 
 } from '../utils/geminiApi';
-import { generateArtFromPrompt } from '../utils/proceduralArtGenerator';
+import { COMMUNITY_PROMPTS } from '../data/communityPrompts';
 import type { Artwork, ConnectDotsPuzzle } from '../types';
 import confetti from 'canvas-confetti';
 
@@ -53,6 +55,46 @@ interface CulturalPreset {
 }
 
 const CULTURAL_PRESETS: CulturalPreset[] = [
+  {
+    id: 'scientist-astrophysicist',
+    name: 'Dr. Maya Astrophysicist',
+    badge: 'Cosmos & STEM',
+    imagePreview: '/examples/scientist-astrophysicist.jpg',
+    themePhrase: 'Black woman astrophysicist at observatory telescope with star charts',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, publication-quality storybook coloring illustration of a brilliant smiling Black woman astrophysicist with natural curly afro bun and glasses, adjusting a large observatory telescope, surrounded by celestial star charts and planetary globes, delicate uniform monoline inking, crisp thin black outlines, large open hollow white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, strictly zero crosshatching, strictly zero gradients, clean closed contours for digital bucket fill, pure white background'
+  },
+  {
+    id: 'cosmic-queen',
+    name: 'Majestic Cosmic Queen',
+    badge: 'Afrofuturism & Stars',
+    imagePreview: '/examples/cosmic-queen.jpg',
+    themePhrase: 'Majestic Black cosmic queen with towering braided nebula crown and celestial robes',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, publication-quality storybook coloring illustration of a majestic Black cosmic queen with elaborate braided crown hair reaching into star constellations, floating in space with orbiting crescent moons, geometric sacred patterns, delicate uniform monoline inking, crisp thin black outlines, large open hollow white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, strictly zero crosshatching, strictly zero gradients, clean closed contours for digital bucket fill, pure white background'
+  },
+  {
+    id: 'robotics-engineer',
+    name: 'Robotics Engineer',
+    badge: 'Robotics & Future',
+    imagePreview: '/examples/robotics-engineer.jpg',
+    themePhrase: 'Black male robotics engineer assembling advanced humanoid android',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, publication-quality storybook coloring illustration of an intelligent smiling Black male robotics engineer with short fade haircut wearing safety glasses and workshop apron, working on an advanced friendly humanoid robot with exposed gears, wires, and circuit tools, delicate uniform monoline inking, crisp thin black outlines, large open hollow white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, strictly zero crosshatching, strictly zero gradients, clean closed contours for digital bucket fill, pure white background'
+  },
+  {
+    id: 'healthcare-pediatrician',
+    name: 'Pediatric Care & Love',
+    badge: 'Healing & Care',
+    imagePreview: '/examples/healthcare-pediatrician.jpg',
+    themePhrase: 'Smiling Black woman pediatrician gently examining young child with teddy bear',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, publication-quality storybook coloring illustration of a caring smiling Black woman pediatrician wearing scrubs, white coat, and stethoscope, gently listening to the heartbeat of a happy little Black girl sitting on an examination table holding a teddy bear, cheerful clinic room, delicate uniform monoline inking, crisp thin black outlines, large open hollow white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, strictly zero crosshatching, strictly zero gradients, clean closed contours for digital bucket fill, pure white background'
+  },
+  {
+    id: 'teenager-basketball-star',
+    name: 'Teen Basketball Star',
+    badge: 'Court & Energy',
+    imagePreview: '/examples/teenager-basketball.jpg',
+    themePhrase: 'Athletic Black male teenager playing basketball on neighborhood court',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, publication-quality storybook coloring illustration of an athletic, handsome smiling Black male teenager with neat twist braids and sharp lineup, wearing a numbered basketball jersey and shorts, joyfully dribbling a basketball on a neighborhood court, complete with basketball hoop, backboard, and net in background, crisp uniform monoline black inking on pure white background, large hollow white spaces easy to color in, strictly zero shading, strictly zero grayscale, strictly zero color, no solid black hair fills, clean closed contours like a printed coloring book'
+  },
   {
     id: 'teenager-dreadlocks-guitar',
     name: 'Teenager & Guitar',
@@ -108,10 +150,99 @@ const CULTURAL_PRESETS: CulturalPreset[] = [
     imagePreview: '/examples/michelle-obama.png',
     themePhrase: 'Historic civil rights ribbon banner with hollow lettering',
     prompt: 'Black and white coloring page tribute to Michelle Obama, arched banner at top with hollow letters, holding microphone in tailored blazer, shooting stars with speed rays, HOPE buttons, concentric cloud border, clean bold vector line art on pure white paper'
+  },
+  {
+    id: 'doctor-stethoscope',
+    name: 'Doctor & Healthcare Hero',
+    badge: 'Medicine & Care',
+    imagePreview: '/examples/doctor-stethoscope.jpg',
+    themePhrase: 'Black female doctor with stethoscope in lab coat',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a smiling beautiful Black female doctor wearing a white lab coat with a stethoscope around her neck and medical clipboard in hand, hospital hallway in background, hair in neat braided bun, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, clean closed contours for digital bucket fill, pure white background'
+  },
+  {
+    id: 'ballerina-dancer',
+    name: 'Graceful Ballerina',
+    badge: 'Ballet & Grace',
+    imagePreview: '/examples/ballerina-dancer.jpg',
+    themePhrase: 'Graceful Black ballerina in ruffled tutu and pointe shoes',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a graceful smiling young Black girl ballerina wearing a ruffled tutu dress and ballet pointe shoes, dancing in an elegant arabesque pose on a wooden stage with theater curtains in background, natural curly hair tied up in a high puff bun with ribbon, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, pure white background'
+  },
+  {
+    id: 'hbcu-graduate',
+    name: 'HBCU Proud Graduate',
+    badge: 'Excellence & Pride',
+    imagePreview: '/examples/hbcu-graduate.jpg',
+    themePhrase: 'Proud graduate in cap and gown with kente sash stole',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a proud smiling Black young man university graduate wearing academic graduation cap with tassel and graduation gown with kente cloth sash stole, holding a rolled diploma tied with ribbon, university campus bell tower in background, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
+  },
+  {
+    id: 'afro-astronaut',
+    name: 'Cosmic Astronaut',
+    badge: 'Stars & Wonder',
+    imagePreview: '/examples/afro-astronaut.jpg',
+    themePhrase: 'Black astronaut floating in space among planets and stars',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a smiling cool young Black male astronaut in space suit holding helmet under his arm, floating in outer space with crescent moon, Saturn with rings, cute rocket ship and stars in background, neat curly fade hair, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
+  },
+  {
+    id: 'father-reading-child',
+    name: 'Father & Child Storytime',
+    badge: 'Family & Love',
+    imagePreview: '/examples/father-reading-child.jpg',
+    themePhrase: 'Loving Black father reading book with child on couch',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a loving handsome smiling Black father with short beard and fade haircut sitting on a cozy living room sofa with his smiling child with cute afro puffs, reading a big picture book together, cozy lamp and houseplants in background, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
+  },
+  {
+    id: 'stem-scientist',
+    name: 'STEM Lab Scientist',
+    badge: 'STEM & Discovery',
+    imagePreview: '/examples/stem-scientist.jpg',
+    themePhrase: 'Young Black girl scientist in laboratory with test tubes and microscope',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of an intelligent smiling young Black girl scientist wearing safety goggles, lab coat, with afro puffs tied with ribbons, standing at a science laboratory workbench with bubbling test tubes, beakers, microscope, and planetary model in background, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
+  },
+  {
+    id: 'black-male-engineer',
+    name: 'Civil Engineer & Blueprints',
+    badge: 'STEM & Building',
+    imagePreview: '/examples/black-male-engineer.jpg',
+    themePhrase: 'Handsome Black male engineer in hard hat holding blueprints at construction site',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a smiling handsome Black male engineer wearing a hard hat and safety vest, holding rolled architectural blueprints and a tablet, active construction site with crane and steel beams in background, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, clean closed contours for digital bucket fill, pure white background'
+  },
+  {
+    id: 'black-pilot-airplane',
+    name: 'Commercial Airline Pilot',
+    badge: 'Aviation & Sky',
+    imagePreview: '/examples/black-pilot-airplane.jpg',
+    themePhrase: 'Black airline captain in uniform standing in front of airplane',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a proud smiling handsome Black male pilot in commercial airline captain uniform with peaked captain hat and aviator wings badge, standing in front of an airplane jet with airport runway in background, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
+  },
+  {
+    id: 'black-chef-cooking',
+    name: 'Culinary Master Chef',
+    badge: 'Culinary Arts',
+    imagePreview: '/examples/black-chef-cooking.jpg',
+    themePhrase: 'Black male chef wearing tall toque cooking at kitchen stove',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a cheerful smiling handsome Black male culinary chef wearing tall white chef hat toque and apron, holding a wooden spoon over a steaming soup pot on a commercial kitchen stove with hanging copper pans in background, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
+  },
+  {
+    id: 'black-firefighter',
+    name: 'Hero Firefighter',
+    badge: 'Courage & Service',
+    imagePreview: '/examples/black-firefighter.jpg',
+    themePhrase: 'Brave Black firefighter in gear with fire engine truck',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of a brave smiling handsome Black male firefighter in bunker gear coat and helmet with protective visor, holding a fire hose nozzle with fire truck engine in background, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
+  },
+  {
+    id: 'black-teacher-classroom',
+    name: 'Inspirational Teacher',
+    badge: 'Education & Mentorship',
+    imagePreview: '/examples/black-teacher-classroom.jpg',
+    themePhrase: 'Inspiring Black male teacher pointing at chalkboard in classroom',
+    prompt: 'Clean black and white coloring book page line art on pure white paper, storybook coloring illustration of an inspiring smiling handsome Black male teacher wearing spectacles and button-up shirt, pointing with chalk to a chalkboard with world map and math formulas in school classroom with wooden desks, delicate uniform monoline black inking, crisp thin black outlines, large hollow open white spaces everywhere for coloring in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, pure white background'
   }
 ];
 
 const QUICK_STYLE_CHIPS = [
+  { label: '+ Basketball & Court', text: ', wearing numbered jersey and shorts, joyfully dribbling basketball with hoop and court in background' },
   { label: '+ Dreadlocks & Guitar', text: ', detailed hollow dreadlocks with beads, playing acoustic guitar' },
   { label: '+ Toy Truck & Blocks', text: ', playing happily with chunky toy dump truck and alphabet blocks A B C' },
   { label: '+ Laid Baby Hair', text: ', wavy laid S-curl baby hair edges on forehead and temples' },
@@ -123,6 +254,46 @@ const QUICK_STYLE_CHIPS = [
   { label: '+ Pure White Paper', text: ', crisp thin black outlines, pure white paper background, strictly no shading' },
 ];
 
+// Hand-verified: each image visually depicts the exact topic title it is mapped to.
+// Do NOT add approximate matches here — topics without a true match go to the AI generator.
+const DEDICATED_HERITAGE_IMAGES: Record<string, string> = {
+  // Celebrities & Trailblazers
+  'celebrity-001': '/examples/miles-davis.jpg',                 // Miles Davis Playing Trumpet
+  'celebrity-002': '/examples/ella-fitzgerald-jazz.jpg',        // Ella Fitzgerald at the Savoy Ballroom
+  'celebrity-041': '/examples/mlk-speech.jpg',                  // Martin Luther King Jr. I Have a Dream
+  'celebrity-044': '/examples/harriet-tubman-lantern.jpg',      // Harriet Tubman Freedom Lantern
+  // Scientists & STEM
+  'scientists-001': '/examples/mae-jemison-shuttle.jpg',        // Dr. Mae Jemison aboard Space Shuttle
+  'scientists-003': '/examples/nasa-mathematician.jpg',         // Katherine Johnson Calculating Orbital Trajectory
+  'scientists-005': '/examples/scientist-astrophysicist.jpg',   // Dr. Beth Brown Observing X-Ray Galaxies
+  'scientists-021': '/examples/carver-laboratory.jpg',          // George Washington Carver Laboratory
+  // Engineers & Tech Innovators
+  'engineers-011': '/examples/robotics-engineer.jpg',           // Humanoid Bipedal Robot Programmer
+  'engineers-033': '/examples/clean-energy-engineer.jpg',       // Clean Energy & Wind Turbine Engineer
+  // Healthcare & Doctors
+  'healthcare-001': '/examples/healthcare-pediatrician.jpg',    // Caring Pediatrician with Young Patient
+  'healthcare-008': '/examples/pediatric-surgeon.jpg',          // Dr. Charles Pediatric Surgeon
+  // Children & Youth
+  'children-001': '/examples/girl-cardboard-rocket.jpg',        // Maya Space Explorer in Cardboard Rocket
+  'children-023': '/examples/ballerina-dancer.jpg',             // Young Ballerina First Plié at Barre
+  // Teenagers & Passions
+  'teenagers-017': '/examples/teenager-dreadlocks-guitar.jpg',  // Acoustic Guitar Singer-Songwriter
+  'teenagers-021': '/examples/teenager-basketball.jpg',         // Basketball Point Guard Crossover Dribble
+  'teenagers-029': '/examples/teen-skateboarder.jpg',           // Marcus Skatepark Kickflip
+  'teenagers-032': '/examples/hbcu-graduate.jpg',               // High School / College Graduation Cap Toss
+  // Adults & Everyday Champions
+  'adults-003': '/examples/black-chef-cooking.jpg',             // Master Chef Plating Gourmet Soul Food
+  'adults-004': '/examples/black-pilot-airplane.jpg',           // Commercial Airline Captain in Cockpit
+  'adults-014': '/examples/father-reading-child.jpg',           // Father Reading Bedtime Story
+  'adults-024': '/examples/urban-architect.jpg',                // Elena Modern Eco-Architect
+  'adults-031': '/examples/harlem-jazz-saxophone.jpg',          // Jazz Saxophonist at Legendary Club
+  'adults-075': '/examples/black-firefighter.jpg',              // Firefighter Rescue Captain in Gear
+  'adults-076': '/examples/black-male-engineer.jpg',            // Civil Engineer Construction Safety Walk
+  // Cosmic & Afrofuturism
+  'cosmic-001': '/examples/cosmic-queen.jpg',                   // Afrofuturistic Cosmic Queen of Nebulae
+  'cosmic-002': '/examples/afro-astronaut.jpg',                // Afro Astronaut Floating in Deep Space
+};
+
 export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
   onLoadCustomArtwork,
   onJumpToColoring,
@@ -130,11 +301,36 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
   onJumpToConnectDots,
   onJumpToPaintByNumbers,
 }) => {
-  // Navigation & Mode
-  const [activeTab, setActiveTab] = useState<'prompt' | 'photo'>('prompt');
+  // Navigation & Mode (default to 800 Heritage Topics library)
+  const [activeTab, setActiveTab] = useState<'prompt' | 'photo' | 'library'>('library');
+  const [libraryCategory, setLibraryCategory] = useState<string>('all');
+  const [librarySearch, setLibrarySearch] = useState<string>('');
+  const [showOnlyVerified, setShowOnlyVerified] = useState<boolean>(false);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
 
-  // Engine selection: 'free-ai' | 'gemini' | 'procedural'
-  const [engine, setEngine] = useState<'free-ai' | 'gemini' | 'procedural'>('free-ai');
+  // Images produced by `npm run generate-artworks` (public/gallery/manifest.json), keyed by topic id
+  const [generatedGallery, setGeneratedGallery] = useState<Record<string, string>>({});
+  useEffect(() => {
+    fetch('/gallery/manifest.json', { cache: 'no-store' })
+      .then(res => (res.ok ? res.json() : {}))
+      .then((manifest: Record<string, { imagePath?: string }>) => {
+        const map: Record<string, string> = {};
+        for (const [id, entry] of Object.entries(manifest || {})) {
+          if (entry?.imagePath) map[id] = entry.imagePath;
+        }
+        setGeneratedGallery(map);
+      })
+      .catch(() => setGeneratedGallery({}));
+  }, []);
+
+  // Returns ONLY an image that truly matches this topic, or undefined (never a look-alike substitute)
+  const getTopicImage = (topicId: string): string | undefined =>
+    generatedGallery[topicId] || DEDICATED_HERITAGE_IMAGES[topicId];
+  const verifiedImageCount = COMMUNITY_PROMPTS.filter(p => getTopicImage(p.id)).length;
+
+
+  // Engine selection: 'heritage' (Path 2, out of the box) | 'gemini' (Google Cloud with billing)
+  const [engine, setEngine] = useState<'heritage' | 'gemini'>('heritage');
   const [geminiApiKey, setGeminiApiKey] = useState<string>(getStoredGeminiKey());
   const [showKey, setShowKey] = useState<boolean>(false);
   const [isVerifyingKey, setIsVerifyingKey] = useState<boolean>(false);
@@ -213,6 +409,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
     const cCtx = canvas.getContext('2d')!;
 
     if (activeTab === 'photo') {
+      // Photo-to-Line-Art mode: Sobel edge detection is strictly for real uploaded photographs
       const processed = convertToColoringLineArt(tempCanvas, {
         threshold: photoThreshold,
         edgeIntensity: 2.5,
@@ -221,21 +418,32 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
         invert: false,
       });
       cCtx.drawImage(processed, 0, 0);
-    } else if (activeImageDataUrl.startsWith('data:image/svg+xml')) {
-      // Preserves pure vector monoline SVG perfectly
-      cCtx.drawImage(tempCanvas, 0, 0);
     } else {
-      // For AI raster generations: extract clean coloring outlines with hollow white interiors
-      const processed = convertToColoringLineArt(tempCanvas, {
-        threshold: lineThreshold || 110,
-        edgeIntensity: 2.5,
-        lineThickness: lineThicken ? 2 : 1,
-        detailLevel: 2,
-        invert: false,
-      });
-      cCtx.drawImage(processed, 0, 0);
+      // For all AI-generated artwork (vector SVG or high-resolution line art):
+      // Draw directly onto the canvas to preserve publication-quality line art
+      cCtx.drawImage(tempCanvas, 0, 0);
+
+      // Only if the user explicitly enabled Deep Contrast or Bolder Lines:
+      if (lineThreshold === 175 || lineThicken) {
+        const imgData = cCtx.getImageData(0, 0, w, h);
+        const d = imgData.data;
+        const thresh = lineThreshold === 175 ? 200 : 160;
+        for (let i = 0; i < d.length; i += 4) {
+          const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          if (lum > thresh) {
+            d[i] = 255;
+            d[i + 1] = 255;
+            d[i + 2] = 255;
+          } else {
+            d[i] = 0;
+            d[i + 1] = 0;
+            d[i + 2] = 0;
+          }
+        }
+        cCtx.putImageData(imgData, 0, 0);
+      }
     }
-  }, [activeTab, activeImageDataUrl, photoThreshold, photoThickness, lineThreshold, lineThicken]);
+  }, [activeTab, photoThreshold, photoThickness, lineThreshold, lineThicken]);
 
   useEffect(() => {
     if (!activeImageDataUrl) return;
@@ -296,32 +504,11 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
     try {
       let finalDataUrl = '';
 
-      if (engine === 'gemini') {
-        const cleanKey = geminiApiKey.trim();
-        if (!cleanKey) {
-          throw new Error('Please enter your Google Gemini API key in the key field above, or switch to Free Instant AI!');
-        }
-
-        setGenerationStep(2);
-        setStatusText('2/3: Generating coloring page with Google Gemini...');
-        // Pass prompt directly to Google Gemini
-        finalDataUrl = await generateColoringPage(cleanKey, cleanPrompt);
-
-      } else if (engine === 'free-ai') {
-        setGenerationStep(2);
-        setStatusText('2/3: Generating high-resolution monoline art with Free Instant AI...');
-        
-        finalDataUrl = await generateFreeColoringImage(cleanPrompt, aspectRatio);
-
-      } else {
-        // Procedural Heritage Vector Engine (Offline)
-        setGenerationStep(2);
-        setStatusText('2/3: Tracing mathematical cultural vector contours...');
-        await new Promise(r => setTimeout(r, 300));
-        
-        const result = generateArtFromPrompt(cleanPrompt, 800, 1000);
-        finalDataUrl = result.dataUrl;
-      }
+      setGenerationStep(2);
+      setStatusText('2/3: Inking publication-quality Black heritage line art...');
+      
+      const cleanKey = engine === 'gemini' ? geminiApiKey.trim() : '';
+      finalDataUrl = await generateColoringPage(cleanKey, cleanPrompt, selectedPresetId || undefined);
 
       setGenerationStep(3);
       setStatusText('3/3: Inking pure black outlines & removing grayscale shading...');
@@ -540,11 +727,357 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
             <Upload className="w-3.5 h-3.5" />
             <span>Photo to Coloring Page</span>
           </button>
+          <button
+            onClick={() => setActiveTab('library')}
+            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+              activeTab === 'library'
+                ? 'bg-amber-500 text-stone-950 shadow-md'
+                : 'text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>800 Community Topics</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/30">
+              800
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Main Grid: Controls on Left, Live Canvas on Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* 800 Community Topics Library View */}
+      {activeTab === 'library' ? (
+        <div className="flex flex-col gap-6 animate-fadeIn pb-12">
+          {/* Top Filter and Search Bar */}
+          <div className="p-6 rounded-3xl bg-stone-900 border border-stone-800 shadow-xl flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-stone-100 flex items-center gap-2">
+                  <span className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <BookOpen className="w-5 h-5" />
+                  </span>
+                  <span>Black Community Heritage Topics (800 Artworks)</span>
+                </h2>
+                <p className="text-xs text-stone-400 mt-1">
+                  100 calibrated coloring prompts each across 8 core community domains. Click any item to load into the AI studio or copy the prompt!
+                </p>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative w-full md:w-72">
+                <Search className="w-4 h-4 text-stone-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={librarySearch}
+                  onChange={(e) => setLibrarySearch(e.target.value)}
+                  placeholder="Search 800 topics..."
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl pl-9 pr-3 py-2 text-xs text-stone-200 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+
+            {/* Category Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
+              {[
+                { id: 'all', label: 'All 800 Topics', icon: '🎨' },
+                { id: 'celebrity', label: 'Celebrity (100)', icon: '🌟' },
+                { id: 'scientists', label: 'Scientists (100)', icon: '🔬' },
+                { id: 'engineers', label: 'Engineers (100)', icon: '⚙️' },
+                { id: 'healthcare', label: 'Healthcare (100)', icon: '🩺' },
+                { id: 'children', label: 'Children (100)', icon: '🎈' },
+                { id: 'teenagers', label: 'Teenagers (100)', icon: '🛹' },
+                { id: 'adults', label: 'Adults (100)', icon: '👔' },
+                { id: 'cosmic', label: 'Cosmic (100)', icon: '🚀' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setLibraryCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 border ${
+                    libraryCategory === cat.id
+                      ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md'
+                      : 'bg-stone-950 text-stone-300 border-stone-800 hover:border-stone-700'
+                  }`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* View Mode Toggle: All 800 vs Inked Master Sheets */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-stone-800">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Catalog Filter:</span>
+                <button
+                  onClick={() => setShowOnlyVerified(false)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    !showOnlyVerified
+                      ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-sm'
+                      : 'bg-stone-950 text-stone-400 border-stone-800 hover:text-stone-200'
+                  }`}
+                >
+                  All 800 Topics (AI Generator)
+                </button>
+                <button
+                  onClick={() => setShowOnlyVerified(true)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
+                    showOnlyVerified
+                      ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-sm'
+                      : 'bg-stone-950 text-stone-400 border-stone-800 hover:text-stone-200'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Ready to Color ({verifiedImageCount})</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] text-stone-400">
+                {showOnlyVerified
+                  ? 'Showing verified unique publication-quality illustrations with zero duplicates'
+                  : 'Click any topic to generate custom art or color with matching theme'}
+              </span>
+            </div>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {COMMUNITY_PROMPTS
+              .filter(item => {
+                if (showOnlyVerified && !getTopicImage(item.id)) return false;
+                const matchCat = libraryCategory === 'all' || item.category === libraryCategory;
+                const q = librarySearch.toLowerCase().trim();
+                const matchSearch = !q ||
+                  item.title.toLowerCase().includes(q) ||
+                  item.subject.toLowerCase().includes(q) ||
+                  item.tags.some(t => t.toLowerCase().includes(q));
+                return matchCat && matchSearch;
+              })
+              .map(item => {
+                const dedicatedImage = getTopicImage(item.id);
+                const hasDedicatedImage = Boolean(dedicatedImage);
+
+                return (
+                <div
+                  key={item.id}
+                  className={`p-3.5 rounded-2xl border flex flex-col justify-between gap-3 shadow-md transition group text-left ${
+                    hasDedicatedImage
+                      ? 'bg-stone-900/90 border-amber-500/40 hover:border-amber-400'
+                      : 'bg-stone-900/60 border-stone-800 hover:border-stone-700'
+                  }`}
+                >
+                  <div>
+                    {/* Visual Coloring Page Image Preview OR Styled Monoline Blueprint */}
+                    {hasDedicatedImage ? (
+                      <div 
+                        onClick={() => {
+                          const artwork: Artwork = {
+                            id: `comm-${item.id}`,
+                            title: item.title,
+                            category: (item.category.charAt(0).toUpperCase() + item.category.slice(1)) as any,
+                            difficulty: item.difficulty as any,
+                            description: item.subject,
+                            culturalStory: item.prompt,
+                            width: 768,
+                            height: 1024,
+                            svgPath: '',
+                            imageSrc: dedicatedImage,
+                            regions: [
+                              { id: `cr-${item.id}-1`, number: 1, name: `${item.title} Contour`, path: 'M 0 0 L 768 0 L 768 1024 L 0 1024 Z', targetColor: '#d97706', defaultColor: '#ffffff' }
+                            ]
+                          };
+                          onLoadCustomArtwork(artwork);
+                          onJumpToColoring();
+                        }}
+                        className="w-full aspect-[4/5] bg-white rounded-xl overflow-hidden mb-3 relative flex items-center justify-center p-2 border border-amber-500/30 group-hover:border-amber-400 transition cursor-pointer group/thumb shadow-inner"
+                        title="Click to color this verified illustration"
+                      >
+                        <img
+                          src={dedicatedImage}
+                          alt={item.title}
+                          className="w-full h-full object-contain filter contrast-125"
+                          loading="lazy"
+                        />
+                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500 text-stone-950 text-[9px] font-black uppercase tracking-wider shadow">
+                          Master Sheet
+                        </div>
+                        <div className="absolute inset-0 bg-stone-950/70 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center p-2">
+                          <span className="px-3 py-1.5 rounded-xl bg-amber-500 text-stone-950 font-black text-xs shadow-lg flex items-center gap-1.5">
+                            <Palette className="w-3.5 h-3.5" />
+                            <span>Click to Color</span>
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Monoline Topic Blueprint Box (Honest Representation) */
+                      <div
+                        onClick={() => {
+                          setPrompt(item.prompt);
+                          setActiveTitle(item.title);
+                          setActiveTab('prompt');
+                        }}
+                        className="w-full aspect-[4/5] bg-stone-950 rounded-xl mb-3 p-3.5 border border-dashed border-stone-800 group-hover:border-amber-500/40 transition cursor-pointer flex flex-col justify-between relative group/bp"
+                        title="Click to generate this custom artwork in AI Inker"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xl">
+                            {item.category === 'celebrity' ? '🌟' :
+                             item.category === 'scientists' ? '🔬' :
+                             item.category === 'engineers' ? '⚙️' :
+                             item.category === 'healthcare' ? '🩺' :
+                             item.category === 'children' ? '🎈' :
+                             item.category === 'teenagers' ? '🛹' :
+                             item.category === 'adults' ? '👔' : '🚀'}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-stone-900 text-stone-400 border border-stone-800 font-semibold">
+                            AI Ready
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 text-center py-2">
+                          <span className="text-[11px] font-bold text-stone-300 line-clamp-2">
+                            {item.title}
+                          </span>
+                          <span className="text-[9px] text-stone-500 leading-tight line-clamp-3">
+                            {item.subject}
+                          </span>
+                        </div>
+
+                        <div className="pt-2 border-t border-stone-800/60 flex items-center justify-center">
+                          <span className="text-[10px] text-amber-400 group-hover/bp:underline font-bold flex items-center gap-1">
+                            <Wand2 className="w-3 h-3" />
+                            <span>Generate in AI Studio</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        {item.category}
+                      </span>
+                      <span className="text-[9px] font-semibold text-stone-400 bg-stone-800 px-2 py-0.5 rounded">
+                        {item.difficulty}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-stone-100 group-hover:text-amber-400 transition">
+                      {item.title}
+                    </h4>
+                    <p className="text-xs text-stone-400 mt-1 line-clamp-2 leading-relaxed">
+                      {item.subject}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {item.tags.slice(0, 3).map(tag => (
+                        <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-stone-950 text-stone-400 border border-stone-800">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 pt-2 border-t border-stone-800/80">
+                    <button
+                      onClick={() => {
+                        const imageSrc = getTopicImage(item.id);
+                        if (!imageSrc) {
+                          // No true match exists yet: generate this exact topic instead of showing a wrong picture
+                          setPrompt(item.prompt);
+                          setActiveTitle(item.title);
+                          setActiveTab('prompt');
+                          return;
+                        }
+                        const artwork: Artwork = {
+                          id: `comm-${item.id}`,
+                          title: item.title,
+                          category: (item.category.charAt(0).toUpperCase() + item.category.slice(1)) as any,
+                          difficulty: item.difficulty as any,
+                          description: item.subject,
+                          culturalStory: item.prompt,
+                          width: 768,
+                          height: 1024,
+                          svgPath: '',
+                          imageSrc,
+                          regions: [
+                            { id: `cr-${item.id}-1`, number: 1, name: `${item.title} Contour`, path: 'M 0 0 L 768 0 L 768 1024 L 0 1024 Z', targetColor: '#d97706', defaultColor: '#ffffff' }
+                          ]
+                        };
+                        onLoadCustomArtwork(artwork);
+                        onJumpToColoring();
+                      }}
+                      className="flex-1 py-1.5 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs flex items-center justify-center gap-1 transition cursor-pointer shadow-md"
+                      title="Color this page in Coloring Studio"
+                    >
+                      <Palette className="w-3.5 h-3.5" />
+                      <span>{hasDedicatedImage ? 'Color Now' : 'Generate This Page'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const imageSrc = getTopicImage(item.id);
+                        if (!imageSrc) {
+                          setPrompt(item.prompt);
+                          setActiveTitle(item.title);
+                          setActiveTab('prompt');
+                          return;
+                        }
+                        const artwork: Artwork = {
+                          id: `comm-${item.id}`,
+                          title: item.title,
+                          category: (item.category.charAt(0).toUpperCase() + item.category.slice(1)) as any,
+                          difficulty: item.difficulty as any,
+                          description: item.subject,
+                          culturalStory: item.prompt,
+                          width: 768,
+                          height: 1024,
+                          svgPath: '',
+                          imageSrc,
+                          regions: [
+                            { id: `cr-${item.id}-1`, number: 1, name: `${item.title} Contour`, path: 'M 0 0 L 768 0 L 768 1024 L 0 1024 Z', targetColor: '#d97706', defaultColor: '#ffffff' }
+                          ]
+                        };
+                        onLoadCustomArtwork(artwork);
+                        if (onJumpToPaintByNumbers) {
+                          onJumpToPaintByNumbers();
+                        } else {
+                          onJumpToColoring();
+                        }
+                      }}
+                      className="p-1.5 px-2.5 rounded-xl bg-stone-950 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold transition cursor-pointer"
+                      title="Paint by Numbers mode"
+                    >
+                      <Hash className="w-3.5 h-3.5 text-amber-400" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setPrompt(item.prompt);
+                        setActiveTitle(item.title);
+                        setActiveTab('prompt');
+                      }}
+                      className="p-1.5 px-2 rounded-xl bg-stone-950 hover:bg-stone-800 text-stone-400 hover:text-stone-200 border border-stone-800 text-xs transition cursor-pointer"
+                      title="Open in AI Prompt Studio"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(item.prompt);
+                        setCopiedPromptId(item.id);
+                        setTimeout(() => setCopiedPromptId(null), 2500);
+                      }}
+                      className="p-1.5 px-2 rounded-xl bg-stone-950 hover:bg-stone-800 text-stone-400 hover:text-stone-200 border border-stone-800 text-xs transition cursor-pointer"
+                      title="Copy full coloring prompt"
+                    >
+                      {copiedPromptId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Main Grid: Controls on Left, Live Canvas on Right */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* Left Column: Creator Controls */}
         <div className="lg:col-span-5 flex flex-col gap-5">
@@ -563,21 +1096,21 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setEngine('free-ai')}
+                    onClick={() => setEngine('heritage')}
                     className={`p-3 rounded-xl text-left transition cursor-pointer border flex flex-col gap-1 ${
-                      engine === 'free-ai'
+                      engine === 'heritage'
                         ? 'bg-amber-500/15 border-amber-500/70 ring-1 ring-amber-400 text-stone-100'
                         : 'bg-stone-950/80 border-stone-800 text-stone-400 hover:border-stone-700'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-200">⚡ Free Instant AI</span>
+                      <span className="text-xs font-bold text-stone-200">🎨 Heritage Inker</span>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 font-semibold">
-                        No Key
+                        Path 2 (Free)
                       </span>
                     </div>
                     <span className="text-[10px] text-stone-400 leading-tight">
-                      FLUX engine tuned for authentic Black heritage coloring outlines.
+                      Publication-grade Black heritage storybook art. 100% Free, no paid Google account needed!
                     </span>
                   </button>
 
@@ -590,23 +1123,23 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-200">✨ Google Gemini</span>
+                      <span className="text-xs font-bold text-stone-200">✨ Google Cloud</span>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 font-semibold">
-                        Pure Inks
+                        Paid Key
                       </span>
                     </div>
                     <span className="text-[10px] text-stone-400 leading-tight">
-                      Executes generateColoringPage() with canvas thresholding.
+                      For Google Cloud accounts with paid billing enabled for image models.
                     </span>
                   </button>
                 </div>
 
-                {/* Gemini API Key Box (only when Google Gemini is selected) */}
+                {/* Gemini API Key Box (only when Google Cloud is selected) */}
                 {engine === 'gemini' && (
                   <div className="mt-1 p-3 rounded-xl bg-stone-950 border border-stone-800 flex flex-col gap-2 animate-fadeIn">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-stone-300 uppercase tracking-wider">
-                        Google Gemini API Key
+                        Google Cloud / AI Studio API Key (Optional)
                       </span>
                       <a 
                         href="https://aistudio.google.com/app/apikey" 
@@ -614,7 +1147,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                         rel="noreferrer"
                         className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 font-semibold"
                       >
-                        <span>Get Free Key</span>
+                        <span>Google AI Studio</span>
                         <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     </div>
@@ -625,7 +1158,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                           type={showKey ? 'text' : 'password'}
                           value={geminiApiKey}
                           onChange={(e) => handleKeyChange(e.target.value)}
-                          placeholder="Enter your Gemini API key..."
+                          placeholder="Paste key (starts with AQ... or AIza...)"
                           className="w-full bg-stone-900 text-stone-200 text-xs rounded-lg px-3 py-2 border border-stone-700 focus:border-amber-500 focus:outline-none font-mono"
                         />
                         <button
@@ -806,31 +1339,17 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
                         {errorNotice}
                       </div>
                     </div>
-                    {engine === 'gemini' && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-red-900/60">
-                        <button
-                          onClick={() => {
-                            setEngine('free-ai');
-                            setErrorNotice(null);
-                            setTimeout(() => {
-                              handleGenerate();
-                            }, 50);
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs cursor-pointer shadow transition"
-                        >
-                          ⚡ Switch to Free Instant AI & Regenerate
-                        </button>
-                        <a
-                          href="https://aistudio.google.com/app/apikey"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-amber-300 hover:underline text-xs flex items-center gap-1 font-semibold"
-                        >
-                          <span>Get Free Gemini Key</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 pt-2 border-t border-red-900/60">
+                      <a
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-300 hover:underline text-xs flex items-center gap-1 font-semibold"
+                      >
+                        <span>Check API Key in Google AI Studio</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1066,6 +1585,7 @@ export const AIGeneratorStudio: React.FC<AIGeneratorStudioProps> = ({
 
         </div>
       </div>
+      )}
     </div>
   );
 };

@@ -9,6 +9,7 @@ export const CONNECT_THE_DOTS_PUZZLES: ConnectDotsPuzzle[] = [
     culturalStory: 'From the jazz clubs of 125th Street in Harlem to the South Side of Chicago, the saxophone became an instrument of profound liberation, spiritual expression, and rhythmic innovation in the hands of Black musicians.',
     totalDots: 32,
     colorArtworkId: 'harlem-jazz-soul',
+    imageSrc: '/examples/harlem-jazz-saxophone.jpg',
     solutionSvgPath: 'M 180 120 L 220 120 L 230 180 L 270 200 L 270 380 C 270 480 380 480 400 380 C 410 320 370 300 350 360 C 340 400 300 400 290 360 L 290 200 L 240 170 L 240 100 L 170 100 Z',
     dots: [
       { id: 1, x: 180, y: 120 },
@@ -53,6 +54,7 @@ export const CONNECT_THE_DOTS_PUZZLES: ConnectDotsPuzzle[] = [
     culturalStory: 'A geometric mapping of the iconic natural afro silhouette, celebrating organic curls, volume, and the radiant halo of Black pride.',
     totalDots: 36,
     colorArtworkId: 'crown-of-radiance',
+    imageSrc: '/examples/afro-queen-curls.jpg',
     solutionSvgPath: 'M 160 380 C 100 320 80 220 140 140 C 200 60 400 60 460 140 C 520 220 500 320 440 380 C 470 330 450 260 420 220 C 370 160 230 160 180 220 C 150 260 130 330 160 380 Z',
     dots: [
       { id: 1, x: 200, y: 460 },
@@ -101,6 +103,7 @@ export const CONNECT_THE_DOTS_PUZZLES: ConnectDotsPuzzle[] = [
     culturalStory: 'Harriet Tubman made approximately 13 missions to rescue around 70 enslaved people using the network of antislavery activists known as the Underground Railroad. Safe houses along the route placed a lit lantern in the window to signal sanctuary and passage to freedom.',
     totalDots: 24,
     colorArtworkId: 'sankofa-sacred-bird',
+    imageSrc: '/examples/adinkra-sacred-gateway.jpg',
     solutionSvgPath: 'M 250 80 C 250 50 350 50 350 80 L 370 140 L 410 170 L 390 420 L 370 450 L 230 450 L 210 420 L 190 170 L 230 140 Z',
     dots: [
       { id: 1, x: 300, y: 50 },

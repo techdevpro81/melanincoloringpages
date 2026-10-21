@@ -12,6 +12,7 @@ import { Info, Sparkles, CheckCircle2 } from 'lucide-react';
 interface ColoringStudioProps {
   initialArtworkId?: string;
   onOpenStory: (artwork: Artwork) => void;
+  onOpenHeritageLibrary?: () => void;
 }
 
 interface DrawingPoint {
@@ -23,6 +24,7 @@ interface DrawingPoint {
 export const ColoringStudio: React.FC<ColoringStudioProps> = ({
   initialArtworkId,
   onOpenStory,
+  onOpenHeritageLibrary,
 }) => {
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork>(() => {
     return CULTURAL_ARTWORKS.find(a => a.id === initialArtworkId) || CULTURAL_ARTWORKS[0];
@@ -598,6 +600,17 @@ export const ColoringStudio: React.FC<ColoringStudioProps> = ({
               </option>
             ))}
           </select>
+
+          {onOpenHeritageLibrary && (
+            <button
+              onClick={onOpenHeritageLibrary}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md transition cursor-pointer shrink-0"
+              title="Open catalog of 100 pages per topic across all 8 community domains"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Browse 800 Heritage Pages</span>
+            </button>
+          )}
         </div>
       </div>
 

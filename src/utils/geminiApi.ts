@@ -3,7 +3,7 @@ import { HfInference } from '@huggingface/inference';
 import { GoogleGenAI } from '@google/genai';
 import { generateColoringPage } from '../coloringPage';
 
-export type AIProvider = 'free-ai' | 'gemini' | 'openai' | 'huggingface';
+export type AIProvider = 'gemini' | 'openai' | 'huggingface';
 
 export interface ImageGenOptions {
   apiKey?: string;
@@ -31,114 +31,85 @@ export function buildMasterColoringPrompt(prompt: string): string {
   const clean = prompt.trim();
   const lower = clean.toLowerCase();
 
+  // If already an ultra-detailed prompt (like our presets with >35 words), preserve it
+  if (clean.split(/\s+/).length > 35) {
+    return clean;
+  }
+
+  // 1. Cultural representation enrichment (Melanin Canvas core mission)
+  let culturalSubject = clean;
+  const isPerson = lower.includes('boy') || lower.includes('girl') || lower.includes('teen') ||
+    lower.includes('man') || lower.includes('woman') || lower.includes('baby') ||
+    lower.includes('child') || lower.includes('kid') || lower.includes('princess') ||
+    lower.includes('king') || lower.includes('queen') || lower.includes('player') ||
+    lower.includes('scholar') || lower.includes('musician');
+
+  const hasBlackExplicit = lower.includes('black') || lower.includes('african american') || lower.includes('melanin');
+
+  // Polish phrasing if a person is described without explicit cultural context
+  culturalSubject = culturalSubject
+    .replace(/^a\s+male\s+teenager/i, 'athletic handsome smiling Black male teenager')
+    .replace(/^a\s+female\s+teenager/i, 'beautiful smiling Black female teenager')
+    .replace(/^an?\s+teenager/i, 'handsome smiling Black teenager')
+    .replace(/^a\s+boy/i, 'smiling young Black boy')
+    .replace(/^a\s+girl/i, 'smiling young Black girl')
+    .replace(/^a\s+man/i, 'dignified handsome Black man')
+    .replace(/^a\s+woman/i, 'graceful radiant Black woman')
+    .replace(/^a\s+baby/i, 'adorable chubby-cheeked Black baby')
+    .replace(/^a\s+toddler/i, 'adorable smiling Black toddler');
+
+  if (isPerson && !hasBlackExplicit && !culturalSubject.toLowerCase().includes('black')) {
+    culturalSubject = `Black ${culturalSubject.replace(/^(a|an)\s+/i, '')}`;
+  }
+
+  // 2. Scene, Environment & Activity Scaffolding
+  let sceneContext = '';
+  if (lower.includes('basketball')) {
+    sceneContext = ', wearing a numbered athletic basketball jersey and shorts, joyfully dribbling a basketball on a neighborhood court, complete with a basketball hoop, backboard, and net in the background';
+  } else if (lower.includes('guitar')) {
+    sceneContext = ', playing an acoustic guitar, sitting on a wooden stool with a warm room setting';
+  } else if (lower.includes('soccer')) {
+    sceneContext = ', wearing a soccer jersey and cleats, kicking a soccer ball on a grass field with goal net';
+  } else if (lower.includes('football')) {
+    sceneContext = ', wearing a football jersey and athletic gear, holding a football on a stadium field';
+  } else if (lower.includes('read') || lower.includes('book')) {
+    sceneContext = ', happily reading an open book, sitting cross-legged with stacks of books';
+  } else if (lower.includes('truck') || lower.includes('toy')) {
+    sceneContext = ', playing happily on the floor with chunky toys and alphabet blocks';
+  }
+
+  // 3. Hair Texture & Cultural Nuances
   let hairHint = '';
   if (lower.includes('braid') || lower.includes('cornrow')) {
-    hairHint = ', outlined hollow chevron braids with cylindrical beads, no solid black hair fills';
+    hairHint = ', outlined hollow chevron braids with cylindrical beads';
   } else if (lower.includes('loc') || lower.includes('dread')) {
-    hairHint = ', outlined cylindrical dreadlocks with hollow white interiors, no solid black fills';
+    hairHint = ', outlined cylindrical dreadlocks locs with hollow white interiors';
   } else if (lower.includes('curl') || lower.includes('afro')) {
-    hairHint = ', defined hollow afro spiral curls, closed line contours';
+    hairHint = ', defined hollow afro spiral curls with closed line contours';
   } else if (lower.includes('fade') || lower.includes('lineup') || lower.includes('line up')) {
-    hairHint = ', crisp barber lineup edges';
-  }
-
-  return `Clean black and white coloring book page line art, coloring sheet of ${clean}${hairHint}, crisp thin black outlines, pure white paper background, large hollow white spaces to color in, strictly zero shading, strictly zero grayscale, strictly zero color, closed line contours`;
-}
-
-/**
- * Free Cloud AI Coloring Page Generator (Turbo Inker with Instant Resilient Fallback)
- * Generates genuine high-resolution coloring pages with ZERO API key required.
- */
-export async function generateFreeColoringImage(
-  prompt: string,
-  aspectRatio: '1:1' | '3:4' | '4:3' = '3:4'
-): Promise<string> {
-  const width = aspectRatio === '1:1' ? 768 : aspectRatio === '4:3' ? 896 : 640;
-  const height = aspectRatio === '1:1' ? 768 : aspectRatio === '4:3' ? 640 : 896;
-  
-  const enhancedPrompt = buildMasterColoringPrompt(prompt);
-  const seed = `${Math.floor(Math.random() * 1000000)}`;
-  
-  // 1. Try local dev proxy (bypasses browser Cloudflare Turnstile blocks & handles rate-limiting cooldown)
-  const proxyUrl = `/api/free-ai-image?prompt=${encodeURIComponent(enhancedPrompt)}&width=${width}&height=${height}&nologo=true&seed=${seed}&_t=${Date.now()}`;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 95000);
-    const res = await fetch(proxyUrl, { signal: controller.signal });
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json') && !contentType.includes('text/')) {
-        const blob = await res.blob();
-        return await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (typeof reader.result === 'string') {
-              resolve(reader.result);
-            } else {
-              reject(new Error('Failed to parse image from Free Cloud AI'));
-            }
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      }
+    hairHint = ', sharp barber lineup edges and textured fade';
+  } else if (isPerson) {
+    if (lower.includes('teen') || lower.includes('boy') || lower.includes('man') || lower.includes('player')) {
+      hairHint = ', neat twist braids or sharp textured fade lineup';
+    } else if (lower.includes('girl') || lower.includes('woman') || lower.includes('princess') || lower.includes('queen')) {
+      hairHint = ', voluminous natural curls or braided crown';
+    } else if (lower.includes('baby') || lower.includes('toddler')) {
+      hairHint = ', soft natural curls with baby hair edges';
     }
-  } catch (proxyErr: any) {
-    console.warn('Local proxy attempt notice:', proxyErr?.message || proxyErr);
   }
 
-  // 2. Direct fallback
-  const directUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    const res = await fetch(directUrl, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (res.ok) {
-      const blob = await res.blob();
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            reject(new Error('Failed to read image data'));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
-  } catch (err: any) {
-    console.warn('Direct image server notice:', err?.message || err);
-  }
-
-  // If cloud generation fails, throw a clear message so the user is never misled with an unrelated image
-  throw new Error(
-    'Free Cloud AI server is momentarily busy or rate-limited. Please wait a few seconds and click Generate Page again, or switch to Google Gemini for instant generation!'
-  );
+  return `Clean black and white coloring book page line art on pure white paper, publication-quality storybook coloring illustration of an authentic ${culturalSubject}${hairHint}${sceneContext}, delicate uniform monoline inking, crisp thin black outlines, large open hollow white spaces everywhere to color in, hollow white hair with neat black contours, strictly zero solid black hair fills, strictly zero shading, strictly zero grayscale, strictly zero color, strictly zero crosshatching, strictly zero gradients, clean closed contours for digital bucket fill, pure white background`;
 }
 
 /**
  * Main AI Coloring Page Generator
- * Supports Free Cloud AI, Google Gemini (SVG Inker & Imagen), OpenAI DALL-E 3, and Hugging Face.
- * Each provider is strictly isolated so switching LLMs always calls the chosen engine.
+ * Supports Google Gemini (Imagen 3 & Vector SVG), OpenAI DALL-E 3, and Hugging Face.
  */
 export async function generateAIColoringImage(
   options: ImageGenOptions
 ): Promise<string> {
   const { apiKey = '', provider, prompt, aspectRatio = '3:4' } = options;
   const cleanKey = apiKey.trim();
-
-  // 1. Free Cloud AI (FLUX) - No key required
-  if (provider === 'free-ai') {
-    console.log('Generating coloring sheet with Free Cloud AI (FLUX)...');
-    return await generateFreeColoringImage(prompt, aspectRatio);
-  }
 
   // Strict Coloring Book style parameters
   const enhancedPrompt = buildMasterColoringPrompt(prompt);
@@ -241,7 +212,7 @@ export async function generateAIColoringImage(
         }
 
         if (msg.toLowerCase().includes('no remaining credits') || msg.toLowerCase().includes('credits')) {
-          throw new Error('Hugging Face account has no remaining serverless credits. Please switch to Free Cloud AI (FLUX) or Google Gemini in the provider tabs.');
+          throw new Error('Hugging Face account has no remaining serverless credits. Please switch to Google Gemini.');
         }
 
         if (msg.toLowerCase().includes('loading') || msg.includes('503')) {
@@ -271,7 +242,7 @@ export async function generateAIColoringImage(
     }
 
     throw new Error(
-      `Hugging Face generation error: ${lastHfError || 'Serverless inference is temporarily unavailable. Please try again or switch to Free Cloud AI!'}`
+      `Hugging Face generation error: ${lastHfError || 'Serverless inference is temporarily unavailable. Please try again or switch to Google Gemini!'}`
     );
   }
 
@@ -478,16 +449,16 @@ export async function testGeminiApiKey(apiKey: string): Promise<KeyValidationRes
     const rawModels: any[] = data.models || [];
     const modelNames = rawModels.map((m: any) => m.name.replace(/^models\//, ''));
 
-    const hasImagen = modelNames.some((m: string) => m.includes('imagen'));
+    const hasImageGen = modelNames.some((m: string) => m.includes('image') || m.includes('imagen'));
 
     return {
       valid: true,
       provider: 'gemini',
       models: modelNames,
-      hasImageGen: hasImagen,
-      message: hasImagen
-        ? `Key verified! ${modelNames.length} models active (Imagen 3 Diffusion + Vector SVG Inker ready).`
-        : `Key verified! ${modelNames.length} models active (Gemini Vector SVG Inker ready).`
+      hasImageGen: hasImageGen,
+      message: hasImageGen
+        ? `Key verified! ${modelNames.length} models active (Google Gemini Image Generation ready).`
+        : `Key verified! ${modelNames.length} models active (Google Gemini ready).`
     };
   } catch (e: any) {
     return {

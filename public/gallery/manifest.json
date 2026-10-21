@@ -1,0 +1,218 @@
+{
+  "celebrity-001": {
+    "id": "celebrity-001",
+    "category": "celebrity",
+    "title": "Miles Davis Playing Trumpet",
+    "subject": "Legendary jazz innovator Miles Davis playing his trumpet with intense soul on stage",
+    "imagePath": "/examples/miles-davis.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "celebrity-002": {
+    "id": "celebrity-002",
+    "category": "celebrity",
+    "title": "Ella Fitzgerald at the Savoy Ballroom",
+    "subject": "First Lady of Song Ella Fitzgerald singing into a vintage ribbon microphone",
+    "imagePath": "/examples/ella-fitzgerald-jazz.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "celebrity-041": {
+    "id": "celebrity-041",
+    "category": "celebrity",
+    "title": "Dr. Martin Luther King Jr. I Have a Dream",
+    "subject": "Dr. Martin Luther King Jr. delivering his historic I Have a Dream speech behind microphones at Lincoln Memorial",
+    "imagePath": "/examples/mlk-speech.jpg",
+    "generatedAt": "2026-10-21T20:36:00.000Z"
+  },
+  "celebrity-044": {
+    "id": "celebrity-044",
+    "category": "celebrity",
+    "title": "Harriet Tubman Freedom Lantern",
+    "subject": "Courageous Underground Railroad conductor Harriet Tubman holding brass lantern high under the North Star",
+    "imagePath": "/examples/harriet-tubman-lantern.jpg",
+    "generatedAt": "2026-10-21T20:36:00.000Z"
+  },
+  "scientists-001": {
+    "id": "scientists-001",
+    "category": "scientists",
+    "title": "Dr. Mae Jemison aboard Space Shuttle",
+    "subject": "Dr. Mae Jemison floating weightlessly in space shuttle Endeavour cockpit holding science clipboard",
+    "imagePath": "/examples/mae-jemison-shuttle.jpg",
+    "generatedAt": "2026-10-21T20:36:00.000Z"
+  },
+  "scientists-021": {
+    "id": "scientists-021",
+    "category": "scientists",
+    "title": "George Washington Carver Botanical Lab",
+    "subject": "Agricultural pioneer George Washington Carver examining peanut plant under brass microscope in Tuskegee laboratory",
+    "imagePath": "/examples/carver-laboratory.jpg",
+    "generatedAt": "2026-10-21T20:36:00.000Z"
+  },
+  "scientists-003": {
+    "id": "scientists-003",
+    "category": "scientists",
+    "title": "Katherine Johnson Calculating Orbital Trajectory",
+    "subject": "NASA mathematician Katherine Johnson calculating Apollo lunar trajectories on chalkboard",
+    "imagePath": "/examples/nasa-mathematician.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "scientists-005": {
+    "id": "scientists-005",
+    "category": "scientists",
+    "title": "Dr. Beth Brown Observing X-Ray Galaxies",
+    "subject": "NASA astrophysicist Dr. Beth Brown analyzing elliptical galaxies through space observatory telescope",
+    "imagePath": "/examples/scientist-astrophysicist.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "engineers-011": {
+    "id": "engineers-011",
+    "category": "engineers",
+    "title": "Humanoid Bipedal Robot Programmer",
+    "subject": "Black male robotics engineer assembling advanced humanoid android",
+    "imagePath": "/examples/robotics-engineer.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "engineers-033": {
+    "id": "engineers-033",
+    "category": "engineers",
+    "title": "Clean Energy & Wind Turbine Engineer",
+    "subject": "Black female environmental engineer with natural curly afro bun and safety hard hat with wind turbines and solar panels",
+    "imagePath": "/examples/clean-energy-engineer.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "healthcare-001": {
+    "id": "healthcare-001",
+    "category": "healthcare",
+    "title": "Caring Pediatrician with Young Patient",
+    "subject": "Smiling Black woman pediatrician gently examining young child with teddy bear",
+    "imagePath": "/examples/healthcare-pediatrician.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "healthcare-008": {
+    "id": "healthcare-008",
+    "category": "healthcare",
+    "title": "Dr. Charles Pediatric Surgeon",
+    "subject": "Esteemed smiling Black surgeon in scrubs and stethoscope standing in surgical operating suite with heart monitors",
+    "imagePath": "/examples/pediatric-surgeon.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "children-001": {
+    "id": "children-001",
+    "category": "children",
+    "title": "Maya Space Explorer in Cardboard Rocket",
+    "subject": "Joyful little Black girl with twin afro puffs sitting inside decorated cardboard rocket ship holding toy astronaut",
+    "imagePath": "/examples/girl-cardboard-rocket.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "children-023": {
+    "id": "children-023",
+    "category": "children",
+    "title": "Young Ballerina First Plié at Barre",
+    "subject": "Graceful young Black ballerina dancer in tutu at dance studio mirror",
+    "imagePath": "/examples/ballerina-dancer.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "teenagers-017": {
+    "id": "teenagers-017",
+    "category": "teenagers",
+    "title": "Acoustic Guitar Singer-Songwriter",
+    "subject": "Talented teenager with dreadlocks playing acoustic guitar with musical soul",
+    "imagePath": "/examples/teenager-dreadlocks-guitar.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "teenagers-021": {
+    "id": "teenagers-021",
+    "category": "teenagers",
+    "title": "Basketball Point Guard Crossover Dribble",
+    "subject": "Athletic Black male teenager playing basketball on neighborhood court",
+    "imagePath": "/examples/teenager-basketball.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "teenagers-029": {
+    "id": "teenagers-029",
+    "category": "teenagers",
+    "title": "Marcus Skatepark Kickflip",
+    "subject": "Dynamic smiling Black teenage boy with stylish box braids and hoodie balancing on skateboard at community skatepark",
+    "imagePath": "/examples/teen-skateboarder.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "teenagers-032": {
+    "id": "teenagers-032",
+    "category": "teenagers",
+    "title": "High School Graduation Cap Toss",
+    "subject": "Proud Black student graduate in graduation cap and gown holding diploma",
+    "imagePath": "/examples/hbcu-graduate.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "adults-003": {
+    "id": "adults-003",
+    "category": "adults",
+    "title": "Master Chef Plating Gourmet Soul Food",
+    "subject": "Black master chef stirring copper pot in gourmet kitchen",
+    "imagePath": "/examples/black-chef-cooking.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "adults-004": {
+    "id": "adults-004",
+    "category": "adults",
+    "title": "Commercial Airline Captain in Cockpit",
+    "subject": "Black commercial pilot captain standing proudly before jet on runway",
+    "imagePath": "/examples/black-pilot-airplane.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "adults-014": {
+    "id": "adults-014",
+    "category": "adults",
+    "title": "Father Reading Bedtime Story",
+    "subject": "Loving Black father reading storybook with his child in cozy bedroom",
+    "imagePath": "/examples/father-reading-child.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "adults-024": {
+    "id": "adults-024",
+    "category": "adults",
+    "title": "Elena Modern Eco-Architect",
+    "subject": "Talented smiling Black female architect with braided bun drafting blueprints for sustainable community center",
+    "imagePath": "/examples/urban-architect.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "adults-031": {
+    "id": "adults-031",
+    "category": "adults",
+    "title": "Jazz Saxophonist at Legendary Club",
+    "subject": "Passionate saxophonist playing smooth jazz melody on stage",
+    "imagePath": "/examples/harlem-jazz-saxophone.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "adults-075": {
+    "id": "adults-075",
+    "category": "adults",
+    "title": "Firefighter Rescue Captain in Gear",
+    "subject": "Hero firefighter in turnout coat with fire hose by fire engine",
+    "imagePath": "/examples/black-firefighter.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "adults-076": {
+    "id": "adults-076",
+    "category": "adults",
+    "title": "Civil Engineer Construction Safety Walk",
+    "subject": "Civil engineer with clipboard inspecting skyscraper foundation",
+    "imagePath": "/examples/black-male-engineer.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "cosmic-001": {
+    "id": "cosmic-001",
+    "category": "cosmic",
+    "title": "Afrofuturistic Cosmic Queen of Nebulae",
+    "subject": "Majestic Black cosmic queen with towering braided nebula crown and celestial robes",
+    "imagePath": "/examples/cosmic-queen.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  },
+  "cosmic-002": {
+    "id": "cosmic-002",
+    "category": "cosmic",
+    "title": "Afro Astronaut Floating in Deep Space",
+    "subject": "Afro astronaut floating gracefully outside spacecraft against starfield",
+    "imagePath": "/examples/afro-astronaut.jpg",
+    "generatedAt": "2026-10-21T19:27:00.000Z"
+  }
+}

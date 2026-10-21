@@ -1,4 +1,4 @@
-export type AppMode = 'coloring' | 'paint-by-number' | 'connect-dots' | 'ai-generator' | 'gallery';
+export type AppMode = 'coloring' | 'paint-by-number' | 'connect-dots' | 'ai-studio' | 'gallery';
 
 export type ToolType = 'bucket' | 'brush' | 'crayon' | 'marker' | 'glow' | 'glitter' | 'eraser' | 'eyedropper';
 
@@ -31,7 +31,7 @@ export interface ArtworkRegion {
 export interface Artwork {
   id: string;
   title: string;
-  category: 'Afrofuturism' | 'Crown & Joy' | 'Jazz & Heritage' | 'Civil Rights & History' | 'Sacred Geometry' | 'Community';
+  category: 'Afrofuturism' | 'Crown & Joy' | 'Jazz & Heritage' | 'Civil Rights & History' | 'Sacred Geometry' | 'Community' | 'Celebrity' | 'Scientists' | 'Engineers' | 'Healthcare' | 'Children' | 'Teenagers' | 'Adults' | 'Cosmic';
   difficulty: 'Easy' | 'Medium' | 'Detailed';
   description: string;
   culturalStory: string;
@@ -60,6 +60,7 @@ export interface ConnectDotsPuzzle {
   solutionSvgPath: string;
   colorArtworkId?: string;
   difficulty: 'Easy' | 'Medium' | 'Advanced';
+  imageSrc?: string;
 }
 
 export interface SavedArtwork {

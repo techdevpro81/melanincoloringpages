@@ -8,12 +8,14 @@ interface GalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'gallery' | 'print';
+  onOpenHeritageLibrary?: () => void;
 }
 
 export const GalleryModal: React.FC<GalleryModalProps> = ({
   isOpen,
   onClose,
   defaultTab = 'gallery',
+  onOpenHeritageLibrary,
 }) => {
   const [activeTab, setActiveTab] = useState<'gallery' | 'print'>(defaultTab);
   const [artworks, setArtworks] = useState<SavedArtwork[]>([]);
@@ -67,9 +69,12 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({
         <body>
           <h1>${art.title}</h1>
           <p>${art.description}</p>
-          <svg viewBox="0 0 ${art.width} ${art.height}">
-            ${svgPaths}
-          </svg>
+          ${art.imageSrc 
+            ? `<img src="${art.imageSrc}" style="width: 100%; max-height: 8.5in; object-fit: contain; margin: 0 auto; display: block;" />`
+            : `<svg viewBox="0 0 ${art.width} ${art.height}">
+                ${svgPaths}
+              </svg>`
+          }
           <div class="footer">MELANIN CANVAS • BLACK HERITAGE ART STUDIO • COLOR AT HOME</div>
           <script>
             window.onload = function() { window.print(); }
@@ -197,6 +202,31 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({
           ) : (
             /* Printable Sheets Tab */
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="sm:col-span-2 md:col-span-3 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-600/10 to-amber-700/15 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 mb-1">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-amber-500 text-stone-950 font-black">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-200">Looking for 100 Coloring Pages per Topic?</h4>
+                    <p className="text-xs text-stone-300">
+                      Explore all 800 pages across Celebrities, Scientists, Engineers, Healthcare, Children, Teenagers, Adults & Cosmic!
+                    </p>
+                  </div>
+                </div>
+                {onOpenHeritageLibrary && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenHeritageLibrary();
+                    }}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-md transition cursor-pointer shrink-0"
+                  >
+                    Browse 800 Heritage Pages
+                  </button>
+                )}
+              </div>
+
               {CULTURAL_ARTWORKS.map((art) => (
                 <div
                   key={art.id}

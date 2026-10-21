@@ -5,9 +5,9 @@ import { Header } from './components/Header';
 import { ColoringStudio } from './components/ColoringStudio';
 import { PaintByNumbers } from './components/PaintByNumbers';
 import { ConnectTheDots } from './components/ConnectTheDots';
-import { AIGeneratorStudio } from './components/AIGeneratorStudio';
 import { CulturalStoryModal } from './components/CulturalStoryCard';
 import { GalleryModal } from './components/GalleryModal';
+import { AIGeneratorStudio } from './components/AIGeneratorStudio';
 
 export function App() {
   const [currentMode, setCurrentMode] = useState<AppMode>('coloring');
@@ -57,15 +57,6 @@ export function App() {
     setCurrentMode('coloring');
   };
 
-  // Load custom converted photo into coloring studio
-  const handleLoadCustomArtwork = (customArt: Artwork) => {
-    // Add to artworks list if not already there
-    if (!CULTURAL_ARTWORKS.find(a => a.id === customArt.id)) {
-      CULTURAL_ARTWORKS.unshift(customArt);
-    }
-    setSelectedArtworkId(customArt.id);
-  };
-
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans selection:bg-amber-500 selection:text-stone-950">
       {/* Top Navigation & Audio Bar */}
@@ -92,6 +83,7 @@ export function App() {
           <ColoringStudio
             initialArtworkId={selectedArtworkId}
             onOpenStory={handleOpenStory}
+            onOpenHeritageLibrary={() => setCurrentMode('ai-studio')}
           />
         )}
 
@@ -100,6 +92,7 @@ export function App() {
             initialArtworkId={selectedArtworkId}
             onOpenStory={handleOpenStory}
             onJumpToColoring={handleJumpToColoring}
+            onOpenHeritageLibrary={() => setCurrentMode('ai-studio')}
           />
         )}
 
@@ -111,13 +104,18 @@ export function App() {
           />
         )}
 
-        {currentMode === 'ai-generator' && (
+        {currentMode === 'ai-studio' && (
           <AIGeneratorStudio
-            onLoadCustomArtwork={handleLoadCustomArtwork}
+            onLoadCustomArtwork={(art) => {
+              if (!CULTURAL_ARTWORKS.some(a => a.id === art.id)) {
+                CULTURAL_ARTWORKS.unshift(art);
+              }
+              setSelectedArtworkId(art.id);
+            }}
             onJumpToColoring={() => setCurrentMode('coloring')}
-            onLoadCustomPuzzle={(p) => setCustomPuzzle(p)}
-            onJumpToConnectDots={() => setCurrentMode('connect-dots')}
             onJumpToPaintByNumbers={() => setCurrentMode('paint-by-number')}
+            onLoadCustomPuzzle={(puzzle) => setCustomPuzzle(puzzle)}
+            onJumpToConnectDots={() => setCurrentMode('connect-dots')}
           />
         )}
       </main>
@@ -136,6 +134,7 @@ export function App() {
         isOpen={isGalleryOpen}
         onClose={() => setIsGalleryOpen(false)}
         defaultTab={galleryDefaultTab}
+        onOpenHeritageLibrary={() => setCurrentMode('ai-studio')}
       />
 
       {/* Footer Branding & Heritage Tribute */}
@@ -150,9 +149,7 @@ export function App() {
           <div className="flex items-center gap-4 text-[11px] text-stone-500">
             <span>Harmonic Audio Synthesizer</span>
             <span>•</span>
-            <span>Client-Side Computer Vision Engine</span>
-            <span>•</span>
-            <span>Gemini AI Integration Ready</span>
+            <span>Interactive Digital Art Studio</span>
           </div>
         </div>
       </footer>

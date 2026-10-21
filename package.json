@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-artworks": "node scripts/batch_generate_images.mjs",
+    "dataset:generate": "python scripts/generate_prompt_dataset.py"
   },
   "dependencies": {
     "@google/genai": "^2.30.0",

@@ -4,14 +4,14 @@ import {
   Palette, 
   Hash, 
   CircleDot, 
-  Sparkles, 
   FolderHeart, 
   Volume2, 
   VolumeX, 
   Music, 
   Printer, 
   Info,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 
@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
     { mode: 'coloring', label: 'Coloring Studio', icon: <Palette className="w-4 h-4" /> },
     { mode: 'paint-by-number', label: 'Paint by Numbers', icon: <Hash className="w-4 h-4" /> },
     { mode: 'connect-dots', label: 'Connect the Dots', icon: <CircleDot className="w-4 h-4" /> },
-    { mode: 'ai-generator', label: 'AI & Photo Studio', icon: <Sparkles className="w-4 h-4 text-amber-400" />, badge: 'AI' },
+    { mode: 'ai-studio', label: '800 Heritage Pages', icon: <Sparkles className="w-4 h-4" />, badge: '800' },
   ];
 
   return (

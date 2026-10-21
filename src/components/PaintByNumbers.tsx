@@ -21,12 +21,14 @@ interface PaintByNumbersProps {
   initialArtworkId?: string;
   onOpenStory: (artwork: Artwork) => void;
   onJumpToColoring: (artworkId: string) => void;
+  onOpenHeritageLibrary?: () => void;
 }
 
 export const PaintByNumbers: React.FC<PaintByNumbersProps> = ({
   initialArtworkId,
   onOpenStory,
   onJumpToColoring,
+  onOpenHeritageLibrary,
 }) => {
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork>(() => {
     return CULTURAL_ARTWORKS.find(a => a.id === initialArtworkId) || CULTURAL_ARTWORKS[0];
@@ -231,6 +233,17 @@ export const PaintByNumbers: React.FC<PaintByNumbersProps> = ({
               </option>
             ))}
           </select>
+
+          {onOpenHeritageLibrary && (
+            <button
+              onClick={onOpenHeritageLibrary}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md transition cursor-pointer shrink-0"
+              title="Open catalog of 100 pages per topic across all 8 community domains"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Browse 800 Heritage Pages</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -317,12 +330,57 @@ export const PaintByNumbers: React.FC<PaintByNumbersProps> = ({
               viewBox={`0 0 ${selectedArtwork.width} ${selectedArtwork.height}`}
               className="w-full h-full select-none cursor-pointer"
             >
-              {/* Render each segmented region */}
+              {/* Layer 1: Base Illustrated Coloring Page Image */}
+              {selectedArtwork.imageSrc && (
+                <image
+                  href={selectedArtwork.imageSrc}
+                  x="0"
+                  y="0"
+                  width={selectedArtwork.width}
+                  height={selectedArtwork.height}
+                  preserveAspectRatio="xMidYMid meet"
+                  className="pointer-events-none"
+                />
+              )}
+
+              {/* Layer 2: Segmented Coloring Regions */}
               {selectedArtwork.regions.map(region => {
                 const isFilled = !!filledRegions[region.id];
                 const isMatchingActive = region.number === activeNumber && !isFilled;
                 const isHinted = hintedRegionId === region.id;
 
+                if (selectedArtwork.imageSrc) {
+                  // Illustrated Coloring Mode
+                  const fillColor = isFilled
+                    ? filledRegions[region.id]
+                    : isMatchingActive
+                    ? 'rgba(245, 158, 11, 0.22)'
+                    : isHinted
+                    ? 'rgba(251, 191, 36, 0.38)'
+                    : 'transparent';
+
+                  return (
+                    <g key={region.id} onClick={() => handleRegionClick(region)}>
+                      <path
+                        d={region.path}
+                        fill={fillColor}
+                        stroke={isMatchingActive ? '#f59e0b' : isHinted ? '#d97706' : 'rgba(0,0,0,0.1)'}
+                        strokeWidth={isMatchingActive ? 3.5 : 1.5}
+                        strokeDasharray={isMatchingActive ? '8,4' : undefined}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        style={{
+                          mixBlendMode: isFilled ? 'multiply' : 'normal',
+                          opacity: isFilled ? 0.78 : 1.0,
+                          transition: 'all 0.25s ease'
+                        }}
+                        className={isMatchingActive ? 'animate-pulse cursor-pointer' : 'cursor-pointer'}
+                      />
+                    </g>
+                  );
+                }
+
+                // Legacy Pure Vector Mode (fallback if no imageSrc)
                 const fillColor = isFilled
                   ? filledRegions[region.id]
                   : '#ffffff';
@@ -347,6 +405,20 @@ export const PaintByNumbers: React.FC<PaintByNumbersProps> = ({
                   </g>
                 );
               })}
+
+              {/* Layer 3: Multiply Ink Overlay to guarantee line art always stays crisp on top of paint */}
+              {selectedArtwork.imageSrc && (
+                <image
+                  href={selectedArtwork.imageSrc}
+                  x="0"
+                  y="0"
+                  width={selectedArtwork.width}
+                  height={selectedArtwork.height}
+                  preserveAspectRatio="xMidYMid meet"
+                  className="pointer-events-none"
+                  style={{ mixBlendMode: 'multiply' }}
+                />
+              )}
 
               {/* Render Number badges in centers of uncompleted regions */}
               {showNumbers &&
